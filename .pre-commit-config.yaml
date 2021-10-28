@@ -1,0 +1,87 @@
+---
+# Setup:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Apply to all files without commiting:
+#   pre-commit run -a
+#
+# Update this file:
+#   pre-commit autoupdate
+#
+# Hooks list at https://pre-commit.com/hooks.html
+
+repos:
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.0.1
+      hooks:
+          - id: check-added-large-files  # Prevent giant files from being committed
+          - id: check-ast  # Simply check whether the files parse as valid python.
+          - id: check-builtin-literals  # Require literal syntax when initializing empty or zero Python builtin types.
+          - id: check-case-conflict  # Check for files that would conflict in case-insensitive filesystems
+          - id: check-docstring-first  # Checks a common error of defining a docstring after code.
+          - id: check-executables-have-shebangs  # Ensures that (non-binary) executables have a shebang.
+          - id: check-json  # This hook checks json files for parseable syntax.
+          - id: check-shebang-scripts-are-executable  # Ensures that (non-binary) files with a shebang are executable.
+          - id: check-merge-conflict  # Check for files that contain merge conflict strings.
+          - id: check-symlinks  # Checks for symlinks which do not point to anything.
+          - id: check-toml  # This hook checks toml files for parseable syntax.
+          - id: check-vcs-permalinks  # Ensures that links to vcs websites are permalinks.
+          - id: check-xml  # This hook checks xml files for parseable syntax.
+          - id: check-yaml  # This hook checks yaml files for parseable syntax.
+          - id: debug-statements  # Check for debugger imports and py37+ `breakpoint()` calls in python source.
+          - id: destroyed-symlinks  # Detects symlinks which are changed to regular files with a content of a path which that symlink was pointing to.
+          - id: detect-private-key  # Detects the presence of private keys
+          - id: end-of-file-fixer  # Ensures that a file is either empty, or ends with one newline.
+          - id: fix-byte-order-marker  # Removes UTF-8 byte order marker
+          - id: mixed-line-ending  # Replaces or checks mixed line ending
+          - id: name-tests-test  # This verifies that test files are named correctly
+          - id: pretty-format-json # This hook sets a standard for formatting JSON files.
+            args: [--autofix, --no-sort-keys]
+          - id: trailing-whitespace  # This hook trims trailing whitespace.
+
+  #
+  # YAML
+    - repo: https://github.com/adrienverge/yamllint.git
+      rev: v1.26.3
+      hooks:
+          - id: yamllint
+            args: [-d relaxed]
+            name: YAML linting
+    - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
+      rev: 0.1.0
+      hooks:
+          - id: yamlfmt
+            name: YAML formatting
+
+  #
+  # Markdown
+    - repo: https://github.com/executablebooks/mdformat
+      rev: 0.7.10
+      hooks:
+          - id: mdformat
+            additional_dependencies:
+                - mdformat-gfm
+                - mdformat-black
+                - mdformat-beautysh
+                - mdformat-config
+                - mdformat-web
+            name: Markdown formatting
+
+
+  #
+  # Shell scripts
+    - repo: https://github.com/shellcheck-py/shellcheck-py
+      # alt: https://github.com/detailyang/pre-commit-shell
+      rev: v0.7.2.1
+      hooks:
+          - id: shellcheck
+            name: Lint shell scripts
+
+ #
+ # Rust
+    - repo: https://github.com/doublify/pre-commit-rust
+      rev: v1.0
+      hooks:
+          - id: fmt
+            name: Rust formatting
