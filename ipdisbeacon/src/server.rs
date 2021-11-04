@@ -73,17 +73,18 @@ mod test {
     #[test]
     #[traced_test]
     fn test_serve_localhost() {
-        let sending_socket = UdpSocket::bind(format!("{}:{}", "0.0.0.0", 1902)).unwrap();
+        let sending_socket = UdpSocket::bind(format!("{}:{}", "0.0.0.0", 0)).unwrap();
         let receiving_socket = sending_socket
             .try_clone()
             .expect("couldn't clone the socket");
-        let beacon_socket = UdpSocket::bind(format!("{}:{}", LISTENING_ADDR, SERVER_PORT)).unwrap();
+        let beacon_socket = UdpSocket::bind(format!("{}:{}", LISTENING_ADDR, 0)).unwrap();
+        let server_port = beacon_socket.local_addr().unwrap().port();
         let server_handle = thread::spawn(move || {
             serve_single(&beacon_socket, None).unwrap();
         });
         let scanner_handle = thread::spawn(move || {
-            thread::sleep(Duration::from_millis(1000));
-            let beacon_addr = SocketAddr::from(([127, 0, 0, 1], SERVER_PORT));
+            thread::sleep(Duration::from_secs_f64(0.1));
+            let beacon_addr = SocketAddr::from(([127, 0, 0, 1], server_port));
             sending_socket
                 .send_to(SIGNATURE_DEFAULT.0, beacon_addr)
                 .unwrap();
