@@ -21,3 +21,17 @@ pub fn put_in_queue(beacon_answer: BeaconAnswer) -> Result<(), Report> {
     dbg!(beacon_answer);
     Ok(())
 }
+
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+//     use std::thread;
+//     use std::time::Duration;
+//     use tracing_test::traced_test;
+//
+//     #[test]
+//     #[traced_test]
+//     fn test_queue() {
+//         todo!();
+//     }
+// }
