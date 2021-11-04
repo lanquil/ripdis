@@ -48,24 +48,27 @@ mod test {
     use super::*;
     use std::net::SocketAddr;
     use std::thread;
+    use std::time::Duration;
     use tracing_test::traced_test;
 
     #[test]
     #[traced_test]
     fn test_serve_localhost() {
-        let listener_socket =
-            UdpSocket::bind(format!("{}:{}", LISTENING_ADDR, SCANNER_PORT)).unwrap();
-        let listener_handle = thread::spawn(move || {
-            serve_single(&listener_socket).unwrap();
-        });
-        let sending_port = 1901;
-        let sending_socket = UdpSocket::bind(format!("{}:{}", "0.0.0.0", sending_port)).unwrap();
-        let listener_addr = SocketAddr::from(([127, 0, 0, 1], SCANNER_PORT));
         let payload = Answer("{\"an\": [\"example\", \"payload\"]}".as_bytes().to_vec());
-        sending_socket.send_to(&payload.0, listener_addr).unwrap();
-        println!("[{}] -> {}", listener_addr, payload);
-        listener_handle.join().unwrap();
-        // assert_eq!(queue.get().unwrap().payload, payload);
-        assert!(false);
+        let expected = payload.clone();
+        let listener_socket = UdpSocket::bind(format!("{}:{}", LISTENING_ADDR, 0)).unwrap();
+        let listener_port = listener_socket.local_addr().unwrap().port();
+
+        let sender_handle = thread::spawn(move || {
+            thread::sleep(Duration::from_secs_f64(0.1));
+            let sending_socket = UdpSocket::bind(format!("{}:{}", "0.0.0.0", 0)).unwrap();
+            let listener_addr = SocketAddr::from(([127, 0, 0, 1], listener_port));
+            sending_socket.send_to(&payload.0, listener_addr).unwrap();
+            println!("[{}] -> {}", listener_addr, payload);
+        });
+
+        let answer = receive(&listener_socket).unwrap();
+        assert_eq!(answer.payload.0, expected.0);
+        sender_handle.join().unwrap();
     }
 }
