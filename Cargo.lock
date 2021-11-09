@@ -175,6 +175,7 @@ name = "ipdisbeacon"
 version = "0.1.0"
 dependencies = [
  "color-eyre",
+ "serde_json",
  "tracing",
  "tracing-subscriber",
  "tracing-test",
@@ -187,7 +188,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "ipdisbeacon",
- "serde",
+ "serde_json",
  "thiserror",
  "tracing",
  "tracing-subscriber",
