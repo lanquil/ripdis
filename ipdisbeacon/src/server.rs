@@ -1,6 +1,7 @@
 use color_eyre::Report;
+use serde_json;
 // use bytes::{BytesMut, BufMut};
-use crate::bytes::{Answer, Signature};
+use crate::bytes::{Answer, BeaconInfos, Signature};
 use std::net::SocketAddr;
 use std::net::UdpSocket;
 use std::thread;
@@ -13,7 +14,7 @@ pub const SIGNATURE_DEFAULT: Signature =
 
 const RECV_BUFFER_LENGHT: usize = 64;
 const LISTENING_ADDR: &str = "0.0.0.0";
-const REFRACTORY_PERIOD_MS: u64 = 3000; // milliseconds, needed to reduce useless communications and to allow every beacon to be polled in a crowded network
+const REFRACTORY_PERIOD: f64 = 3.0; // needed to reduce useless communications and to allow every beacon to be polled in a crowded network
 
 pub fn run() -> Result<(), Report> {
     {
@@ -21,13 +22,14 @@ pub fn run() -> Result<(), Report> {
         info!(?socket, "Listening for scanner requests.");
         loop {
             serve_single(&socket, None)?;
-            thread::sleep(Duration::from_millis(REFRACTORY_PERIOD_MS));
+            thread::sleep(Duration::from_secs_f64(REFRACTORY_PERIOD));
         }
     } // the socket is closed here
 }
 
 fn get_answer() -> Result<Answer, Report> {
-    let answer = Answer(Vec::new());
+    let dummy_answer = BeaconInfos::String("silent beacon".to_string());
+    let answer = Answer(serde_json::to_vec(&dummy_answer)?);
     Ok(answer)
 }
 

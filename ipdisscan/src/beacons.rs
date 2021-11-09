@@ -2,6 +2,7 @@ use color_eyre::Report;
 use ipdisbeacon::bytes::Answer;
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::fmt;
 use std::net::IpAddr;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -15,6 +16,12 @@ const PRINT_PERIOD: f64 = 1.0;
 pub struct BeaconAnswer {
     pub addr: IpAddr,
     pub payload: Answer,
+}
+
+impl fmt::Display for BeaconAnswer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.addr, self.payload)
+    }
 }
 
 type BeaconAnswers = HashMap<IpAddr, BeaconAnswer>;
@@ -64,10 +71,12 @@ fn print_beacons<I>(beacons: I)
 where
     I: Iterator<Item = BeaconAnswer>,
 {
+    println!("---");
     for beacon in beacons {
-        println!("{:?}", beacon);
-        println!();
+        println!("{}:", beacon.addr);
+        println!("  - {}", beacon.payload);
     }
+    println!("...");
 }
 
 #[cfg(test)]
