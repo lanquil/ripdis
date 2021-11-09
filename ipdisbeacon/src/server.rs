@@ -68,10 +68,9 @@ mod test {
     use super::*;
     use std::thread;
     use std::time::Duration;
-    use tracing_test::traced_test;
 
     #[test]
-    #[traced_test]
+    #[tracing_test::traced_test]
     fn test_serve_localhost() {
         let sending_socket = UdpSocket::bind(format!("{}:{}", "0.0.0.0", 0)).unwrap();
         let receiving_socket = sending_socket

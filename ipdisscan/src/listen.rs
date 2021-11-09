@@ -1,33 +1,31 @@
 use crate::beacons::{put_in_queue, BeaconAnswer};
-use crate::broadcast::SCANNER_PORT;
 use color_eyre::Report;
 use ipdisbeacon::bytes::Answer;
+use std::collections::VecDeque;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use std::net::UdpSocket;
 use tracing::{debug, info, trace};
 
 const RECV_BUFFER_LENGHT: usize = 2usize.pow(10); // 1KiB
-const LISTENING_ADDR: &str = "0.0.0.0";
 
-pub fn run() -> Result<(), Report> {
+pub fn run(socket: &UdpSocket, queue: Arc<Mutex<VecDeque<BeaconAnswer>>>) -> Result<(), Report> {
     {
-        let socket = socket_setup()?;
         info!(?socket, "Listening for beacon answers.");
         loop {
-            serve_single(&socket)?;
+            serve_single(socket, queue.clone())?;
         }
     }
 }
 
-fn socket_setup() -> Result<UdpSocket, Report> {
-    let socket = UdpSocket::bind(format!("{}:{}", LISTENING_ADDR, SCANNER_PORT))?;
-    Ok(socket)
-}
-
-fn serve_single(socket: &UdpSocket) -> Result<(), Report> {
+fn serve_single(
+    socket: &UdpSocket,
+    queue: Arc<Mutex<VecDeque<BeaconAnswer>>>,
+) -> Result<(), Report> {
     let beacon_answer = receive(socket)?;
     trace!(?beacon_answer.addr, %beacon_answer.payload, "Putting in queue.");
-    put_in_queue(beacon_answer)?;
+    put_in_queue(beacon_answer, queue)?;
     Ok(())
 }
 
@@ -49,14 +47,13 @@ mod test {
     use std::net::SocketAddr;
     use std::thread;
     use std::time::Duration;
-    use tracing_test::traced_test;
 
     #[test]
-    #[traced_test]
+    #[tracing_test::traced_test]
     fn test_serve_localhost() {
         let payload = Answer("{\"an\": [\"example\", \"payload\"]}".as_bytes().to_vec());
         let expected = payload.clone();
-        let listener_socket = UdpSocket::bind(format!("{}:{}", LISTENING_ADDR, 0)).unwrap();
+        let listener_socket = UdpSocket::bind(format!("{}:{}", "0.0.0.0", 0)).unwrap();
         let listener_port = listener_socket.local_addr().unwrap().port();
 
         let sender_handle = thread::spawn(move || {

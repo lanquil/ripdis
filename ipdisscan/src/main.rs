@@ -1,12 +1,13 @@
 use clap::App;
 use color_eyre::Report;
-use std::thread;
 use tracing::trace;
 
 use ipdisscan::beacons;
 use ipdisscan::broadcast;
+use ipdisscan::broadcast::socket_setup;
 use ipdisscan::listen;
 use ipdisscan::setup::setup;
+use std::thread;
 
 fn main() -> Result<(), Report> {
     setup()?;
@@ -18,9 +19,12 @@ fn main() -> Result<(), Report> {
     if matches.is_present("tui") {
         panic!("Not implemented yet");
     }
-    thread::spawn(beacons::run);
-    thread::spawn(listen::run);
-    thread::spawn(broadcast::run);
-    // order is important!
+    let socket = socket_setup()?;
+    let socket_c = socket.try_clone()?;
+    let queue = beacons::init_queue()?;
+    let queue_c = queue.clone();
+    thread::spawn(move || beacons::run(queue_c));
+    thread::spawn(move || listen::run(&socket_c, queue));
+    broadcast::run(&socket)?;
     Ok(())
 }

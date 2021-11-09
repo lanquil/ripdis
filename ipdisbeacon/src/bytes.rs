@@ -12,7 +12,7 @@ impl fmt::Display for Signature {
 }
 
 /// Message returned to the scanner. JSON formatted.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Answer(pub Vec<u8>);
 
 impl fmt::Display for Answer {
