@@ -99,7 +99,8 @@ mod test {
             serde_json::from_str::<'_, serde_json::Value>(
                 &Answer::from("not json".as_bytes()).safe_format()
             )
-            .unwrap().to_string(),
+            .unwrap()
+            .to_string(),
             expected.to_string()
         );
     }
@@ -112,7 +113,8 @@ mod test {
             serde_json::from_str::<'_, serde_json::Value>(
                 &Answer::from(vec![31u8, 32, 255].as_slice()).safe_format()
             )
-            .unwrap().to_string(),
+            .unwrap()
+            .to_string(),
             expected.to_string()
         );
     }

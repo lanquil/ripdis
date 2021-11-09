@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
-use terminal_spinners::{SpinnerBuilder, SpinnerHandle};
 use terminal_spinners::DOTS8 as SPINNER;
+use terminal_spinners::{SpinnerBuilder, SpinnerHandle};
 use tracing::{debug, trace};
 
 use crossterm::{cursor, terminal, ExecutableCommand};
