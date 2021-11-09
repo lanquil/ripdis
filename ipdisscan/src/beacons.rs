@@ -37,7 +37,6 @@ pub fn run(in_queue: Arc<Mutex<VecDeque<BeaconAnswer>>>) -> Result<(), Report> {
 
     let mut stdout = stdout();
     stdout.execute(terminal::Clear(terminal::ClearType::All))?;
-    stdout.execute(cursor::Hide)?;
     stdout.execute(cursor::MoveTo(0, 0))?;
     let mut spinner_handle = get_spinner();
     loop {
