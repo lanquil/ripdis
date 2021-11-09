@@ -1,6 +1,7 @@
 use color_eyre::Report;
 use gethostname::gethostname;
 use serde_json;
+use std::net::Ipv4Addr;
 // use bytes::{BytesMut, BufMut};
 use crate::bytes::{Answer, BeaconInfos, Signature};
 use std::net::SocketAddr;
@@ -10,19 +11,19 @@ use std::time::Duration;
 use tracing::{debug, info, trace};
 
 pub const SERVER_PORT: u16 = 1901;
-pub const SIGNATURE_DEFAULT: Signature =
-    Signature("pang-supremacy-maritime-revoke-afterglow".as_bytes()); // must be shorter than RECV_BUFFER_LENGHT
+pub const SIGNATURE_DEFAULT: &str = "ipdisbeacon"; // must be shorter than RECV_BUFFER_LENGHT
 
 const RECV_BUFFER_LENGHT: usize = 64;
-const LISTENING_ADDR: &str = "0.0.0.0";
+const LISTENING_ADDR: Ipv4Addr = Ipv4Addr::UNSPECIFIED; // "0.0.0.0"
 const REFRACTORY_PERIOD: f64 = 3.0; // needed to reduce useless communications and to allow every beacon to be polled in a crowded network
 
 pub fn run() -> Result<(), Report> {
     {
         let socket = UdpSocket::bind(format!("{}:{}", LISTENING_ADDR, SERVER_PORT))?;
         info!(?socket, "Listening for scanner requests.");
+        let signature = Signature(SIGNATURE_DEFAULT.as_bytes().to_vec());
         loop {
-            serve_single(&socket, None)?;
+            serve_single(&socket, &signature)?;
             thread::sleep(Duration::from_secs_f64(REFRACTORY_PERIOD));
         }
     } // the socket is closed here
@@ -42,11 +43,7 @@ fn get_answer() -> Result<Answer, Report> {
     Ok(answer)
 }
 
-fn serve_single(socket: &UdpSocket, signature: Option<Signature>) -> Result<(), Report> {
-    let expected_signature = match signature {
-        None => SIGNATURE_DEFAULT,
-        Some(s) => s,
-    };
+fn serve_single(socket: &UdpSocket, expected_signature: &Signature) -> Result<(), Report> {
     let (addr, received_signature) = receive(socket)?;
     if received_signature.0 != expected_signature.0 {
         debug!(%received_signature, %addr, "Bad signature received, not answering.");
@@ -90,15 +87,14 @@ mod test {
         let beacon_socket = UdpSocket::bind(format!("{}:{}", LISTENING_ADDR, 0)).unwrap();
         let server_port = beacon_socket.local_addr().unwrap().port();
         let server_handle = thread::spawn(move || {
-            serve_single(&beacon_socket, None).unwrap();
+            serve_single(&beacon_socket, &Signature::from(SIGNATURE_DEFAULT)).unwrap();
         });
         let scanner_handle = thread::spawn(move || {
             thread::sleep(Duration::from_secs_f64(0.1));
             let beacon_addr = SocketAddr::from(([127, 0, 0, 1], server_port));
-            sending_socket
-                .send_to(SIGNATURE_DEFAULT.0, beacon_addr)
-                .unwrap();
-            println!("[{}] <- {}", beacon_addr, SIGNATURE_DEFAULT);
+            let signature = Signature::from(SIGNATURE_DEFAULT);
+            sending_socket.send_to(&signature.0, beacon_addr).unwrap();
+            println!("[{}] <- {}", beacon_addr, signature);
         });
         let response = receive(&receiving_socket).unwrap();
         println!("[{}] -> {}", response.0, response.1);
