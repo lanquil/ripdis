@@ -1,4 +1,5 @@
 use color_eyre::Report;
+use gethostname::gethostname;
 use serde_json;
 // use bytes::{BytesMut, BufMut};
 use crate::bytes::{Answer, BeaconInfos, Signature};
@@ -27,9 +28,17 @@ pub fn run() -> Result<(), Report> {
     } // the socket is closed here
 }
 
+fn get_hostname() -> String {
+    gethostname().to_string_lossy().into()
+}
+
 fn get_answer() -> Result<Answer, Report> {
-    let dummy_answer = BeaconInfos::String("silent beacon".to_string());
-    let answer = Answer(serde_json::to_vec(&dummy_answer)?);
+    let hostname = BeaconInfos::String(get_hostname());
+    let hostname_key = "hostname".to_string();
+    let mut hostname_answer = serde_json::map::Map::new();
+    hostname_answer.insert(hostname_key, hostname);
+    let basic_answer = BeaconInfos::Object(hostname_answer);
+    let answer = Answer(serde_json::to_vec(&basic_answer)?);
     Ok(answer)
 }
 
