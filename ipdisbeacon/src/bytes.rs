@@ -4,12 +4,18 @@ use tracing::warn;
 
 /// Signature string sent by scanner. Beacon will answer only if matches.
 /// Must be shorter than RECV_BUFFER_LENGHT or it will be truncated.
-#[derive(Debug)]
-pub struct Signature(pub &'static [u8]);
+#[derive(Debug, Clone)]
+pub struct Signature(pub Vec<u8>);
 
 impl fmt::Display for Signature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", safe_format_bytes(self.0))
+        write!(f, "{}", safe_format_bytes(&self.0))
+    }
+}
+
+impl From<&str> for Signature {
+    fn from(string: &str) -> Self {
+        Self(string.as_bytes().to_vec())
     }
 }
 
