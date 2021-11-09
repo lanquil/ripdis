@@ -8,7 +8,12 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
+use terminal_spinners::{SpinnerBuilder, SpinnerHandle};
+use terminal_spinners::DOTS8 as SPINNER;
 use tracing::{debug, trace};
+
+use crossterm::{cursor, terminal, ExecutableCommand};
+use std::io::stdout;
 
 const PRINT_PERIOD: f64 = 1.0;
 
@@ -29,11 +34,20 @@ type BeaconAnswers = HashMap<IpAddr, BeaconAnswer>;
 pub fn run(in_queue: Arc<Mutex<VecDeque<BeaconAnswer>>>) -> Result<(), Report> {
     let mut beacons = BeaconAnswers::new();
     debug!(%PRINT_PERIOD, "Printing beacons.");
+
+    let mut stdout = stdout();
+    stdout.execute(terminal::Clear(terminal::ClearType::All))?;
+    stdout.execute(cursor::Hide)?;
+    stdout.execute(cursor::MoveTo(0, 0))?;
+    let mut spinner_handle = get_spinner();
     loop {
         beacons = beacons_update(beacons, in_queue.clone())?;
         thread::sleep(Duration::from_secs_f64(PRINT_PERIOD));
+        spinner_handle.stop_and_clear();
+        stdout.execute(cursor::MoveTo(0, 0))?;
         print_beacons(beacons.values().cloned());
-        trace!(?beacons, "Done printing beacons.");
+        spinner_handle = get_spinner();
+        println!();
     }
 }
 
@@ -51,6 +65,13 @@ pub fn put_in_queue(
 
 pub fn init_queue() -> Result<Arc<Mutex<VecDeque<BeaconAnswer>>>, Report> {
     Ok(Arc::new(Mutex::new(VecDeque::new())))
+}
+
+fn get_spinner() -> SpinnerHandle {
+    SpinnerBuilder::new()
+        .spinner(&SPINNER)
+        .text(" Looking for devices")
+        .start()
 }
 
 fn beacons_update(

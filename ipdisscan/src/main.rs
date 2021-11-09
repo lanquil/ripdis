@@ -23,8 +23,8 @@ fn main() -> Result<(), Report> {
     let socket_c = socket.try_clone()?;
     let queue = beacons::init_queue()?;
     let queue_c = queue.clone();
-    thread::spawn(move || beacons::run(queue_c));
-    thread::spawn(move || listen::run(&socket_c, queue));
-    broadcast::run(&socket)?;
+    thread::spawn(move || listen::run(&socket_c, queue_c));
+    thread::spawn(move || broadcast::run(&socket));
+    beacons::run(queue)?;
     Ok(())
 }
