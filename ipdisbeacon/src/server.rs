@@ -1,29 +1,23 @@
+use crate::bytes::{Answer, BeaconInfos, Signature};
+use crate::conf::BeaconConfig;
 use color_eyre::Report;
 use gethostname::gethostname;
 use serde_json;
-use std::net::Ipv4Addr;
-// use bytes::{BytesMut, BufMut};
-use crate::bytes::{Answer, BeaconInfos, Signature};
 use std::net::SocketAddr;
 use std::net::UdpSocket;
 use std::thread;
 use std::time::Duration;
 use tracing::{debug, info, trace};
 
-pub const SERVER_PORT: u16 = 1901;
-pub const SIGNATURE_DEFAULT: &str = "ipdisbeacon"; // must be shorter than RECV_BUFFER_LENGHT
-
 const RECV_BUFFER_LENGHT: usize = 64;
-const LISTENING_ADDR: Ipv4Addr = Ipv4Addr::UNSPECIFIED; // "0.0.0.0"
 const REFRACTORY_PERIOD: f64 = 3.0; // needed to reduce useless communications and to allow every beacon to be polled in a crowded network
 
-pub fn run() -> Result<(), Report> {
+pub fn run(conf: &BeaconConfig) -> Result<(), Report> {
     {
-        let socket = UdpSocket::bind(format!("{}:{}", LISTENING_ADDR, SERVER_PORT))?;
+        let socket = UdpSocket::bind(format!("{}:{}", conf.listening_addr, conf.port))?;
         info!(?socket, "Listening for scanner requests.");
-        let signature = Signature(SIGNATURE_DEFAULT.as_bytes().to_vec());
         loop {
-            serve_single(&socket, &signature)?;
+            serve_single(&socket, &conf.signature)?;
             thread::sleep(Duration::from_secs_f64(REFRACTORY_PERIOD));
         }
     } // the socket is closed here
@@ -74,27 +68,31 @@ fn respond(socket: &UdpSocket, addr: &SocketAddr, msg: &Answer) -> Result<(), Re
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::net::Ipv4Addr;
     use std::thread;
     use std::time::Duration;
 
     #[test]
     #[tracing_test::traced_test]
     fn test_serve_localhost() {
-        let sending_socket = UdpSocket::bind(format!("{}:{}", "0.0.0.0", 0)).unwrap();
+        let conf = BeaconConfig::default();
+        let sending_socket = UdpSocket::bind(format!("{}:{}", Ipv4Addr::UNSPECIFIED, 0)).unwrap();
         let receiving_socket = sending_socket
             .try_clone()
             .expect("couldn't clone the socket");
-        let beacon_socket = UdpSocket::bind(format!("{}:{}", LISTENING_ADDR, 0)).unwrap();
+        let beacon_socket = UdpSocket::bind(format!("{}:{}", conf.listening_addr, 0)).unwrap();
         let server_port = beacon_socket.local_addr().unwrap().port();
+        let conf_clone = conf.clone();
         let server_handle = thread::spawn(move || {
-            serve_single(&beacon_socket, &Signature::from(SIGNATURE_DEFAULT)).unwrap();
+            serve_single(&beacon_socket, &conf_clone.signature).unwrap();
         });
         let scanner_handle = thread::spawn(move || {
             thread::sleep(Duration::from_secs_f64(0.1));
             let beacon_addr = SocketAddr::from(([127, 0, 0, 1], server_port));
-            let signature = Signature::from(SIGNATURE_DEFAULT);
-            sending_socket.send_to(&signature.0, beacon_addr).unwrap();
-            println!("[{}] <- {}", beacon_addr, signature);
+            sending_socket
+                .send_to(&conf.signature.0, beacon_addr)
+                .unwrap();
+            println!("[{}] <- {}", beacon_addr, &conf.signature);
         });
         let response = receive(&receiving_socket).unwrap();
         println!("[{}] -> {}", response.0, response.1);
