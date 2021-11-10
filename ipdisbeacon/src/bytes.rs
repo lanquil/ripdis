@@ -4,7 +4,7 @@ use tracing::warn;
 
 /// Signature string sent by scanner. Beacon will answer only if matches.
 /// Must be shorter than RECV_BUFFER_LENGHT or it will be truncated.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Signature(pub Vec<u8>);
 
 impl fmt::Display for Signature {
