@@ -1,12 +1,12 @@
 use clap::{App, Arg};
 use color_eyre::Report;
-use ipdisbeacon::bytes::Signature;
 use ipdisscan::beacons;
 use ipdisscan::broadcast;
 use ipdisscan::broadcast::socket_setup;
 use ipdisscan::conf::ScannerConfig;
 use ipdisscan::listen;
 use ipdisscan::setup::setup;
+use ipdisserver::bytes::Signature;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 use std::thread;
@@ -16,7 +16,7 @@ fn main() -> Result<(), Report> {
     setup()?;
     let matches = App::new("ipdisscan")
         .version("0.1.0")
-        .about("Search for active instances of ipdisbeacon and get system informations.")
+        .about("Search for active instances of ipdisserver and get system informations.")
         .arg(
             Arg::with_name("port")
                 .short("p")

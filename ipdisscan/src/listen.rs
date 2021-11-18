@@ -1,6 +1,6 @@
 use crate::beacons::{put_in_queue, BeaconAnswer};
 use color_eyre::Report;
-use ipdisbeacon::bytes::Answer;
+use ipdisserver::bytes::Answer;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::Mutex;

@@ -10,20 +10,20 @@
 <!--Font: ANSI Shadow-->
 
 ipdisscan: scan the network broadcast domain and collect informations about
-systems where an instance of [ipdisbeacon](../ipdisbeacon/README.md) is
+systems where an instance of [ipdisserver](../ipdisserver/README.md) is
 running.
 
 ## About
 
 `ipdisscan` continuously send UDP broadcast datagrams (by default from port
-1902), containing a signature recognized by running `ipdisbeacon` instances.
+1902), containing a signature recognized by running ipdisserver instances.
 
-Informations contained in ipdisbeacon answers are collected and reported in a
+Informations contained in ipdisserver answers are collected and reported in a
 simil-YAML format, being continuously updated.
 
 ## Usage
 
-Run `ipdisbeacon --help` for the CLI documentation.
+Run `ipdisscan --help` for the CLI documentation.
 
 ### Environment variables:
 
