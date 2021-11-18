@@ -1,9 +1,9 @@
 use clap::{App, Arg};
 use color_eyre::Report;
-use ipdisbeacon::bytes::Signature;
-use ipdisbeacon::conf::BeaconConfig;
-use ipdisbeacon::server;
-use ipdisbeacon::setup::setup;
+use ipdisserver::bytes::Signature;
+use ipdisserver::conf::BeaconConfig;
+use ipdisserver::server;
+use ipdisserver::setup::setup;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 use tracing::debug;
@@ -12,7 +12,7 @@ use tracing::trace;
 fn main() -> Result<(), Report> {
     setup()?;
     debug!("Tracing setup complete, starting IP discovery beacon.");
-    let matches = App::new("ipdisbeacon")
+    let matches = App::new("ipdisserver")
         .version("0.1.0")
         .about("Answer with system info to ipdisscan broadcasts.")
         .arg(
