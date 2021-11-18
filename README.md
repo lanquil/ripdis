@@ -9,7 +9,8 @@
 
 <!--Font: ANSI Shadow-->
 
-Use UDP broadcasting to find devices and report system informations.
+Use UDP broadcasting to discover devices and report informations about systems
+in the Local Area Network.
 
 This project include a server part, `ipdisbeacon` and a client part,
 `ipdisscan`.
