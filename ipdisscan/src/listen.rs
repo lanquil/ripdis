@@ -51,7 +51,7 @@ mod test {
     #[test]
     #[tracing_test::traced_test]
     fn test_serve_localhost() {
-        let payload = Answer("{\"an\": [\"example\", \"payload\"]}".as_bytes().to_vec());
+        let payload = Answer::from("{\"an\": [\"example\", \"payload\"]}".to_string());
         let expected = payload.clone();
         let listener_socket = UdpSocket::bind(format!("{}:{}", "0.0.0.0", 0)).unwrap();
         let listener_port = listener_socket.local_addr().unwrap().port();
