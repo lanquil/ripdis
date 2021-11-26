@@ -33,7 +33,7 @@ fn get_answer() -> Result<Answer, Report> {
     let mut hostname_answer = serde_json::map::Map::new();
     hostname_answer.insert(hostname_key, hostname);
     let basic_answer = BeaconInfos::Object(hostname_answer);
-    let answer = Answer(serde_json::to_vec(&basic_answer)?);
+    let answer = Answer::from(serde_json::to_string(&basic_answer)?);
     Ok(answer)
 }
 

@@ -64,13 +64,7 @@ fn main() -> Result<(), Report> {
         conf.broadcast_addr = Ipv4Addr::from_str(&str_broadcast_addr)?;
     }
     if matches.is_present("signature") {
-        conf.signature = Signature::from(
-            matches
-                .value_of("signature")
-                .unwrap()
-                .parse::<String>()?
-                .as_str(),
-        );
+        conf.signature = Signature::from(matches.value_of("signature").unwrap());
     }
 
     let socket = socket_setup(conf.port)?;
