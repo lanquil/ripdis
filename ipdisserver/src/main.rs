@@ -1,13 +1,12 @@
 use clap::{App, Arg};
 use color_eyre::Report;
-use ipdisserver::bytes::Signature;
-use ipdisserver::conf::BeaconConfig;
+use ipdisserver::conf::ServerConfig;
 use ipdisserver::server;
 use ipdisserver::setup::setup;
 use std::net::Ipv4Addr;
+use std::path::Path;
 use std::str::FromStr;
-use tracing::debug;
-use tracing::trace;
+use tracing::{debug, info, trace};
 
 fn main() -> Result<(), Report> {
     setup()?;
@@ -32,17 +31,17 @@ fn main() -> Result<(), Report> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("signature")
+            Arg::with_name("signatures")
                 .short("s")
-                .long("signature")
-                .value_name("SIGN")
-                .help("Default: `ipdisbeacon`")
+                .long("signatures-file")
+                .value_name("SIGNATURES_FILE")
+                .help("Path of a file with accepted signatures, one per line. If not specified a single signature is accepted: `ipdisbeacon`")
                 .takes_value(true),
         )
         .get_matches();
     trace!(?matches);
 
-    let mut conf = BeaconConfig::default();
+    let mut conf = ServerConfig::default();
     if matches.is_present("port") {
         conf.port = matches.value_of("port").unwrap().parse()?;
     }
@@ -50,14 +49,11 @@ fn main() -> Result<(), Report> {
         let addr = matches.value_of("addr").unwrap().parse::<String>()?;
         conf.listening_addr = Ipv4Addr::from_str(&addr)?;
     }
-    if matches.is_present("signature") {
-        conf.signature = Signature::from(
-            matches
-                .value_of("signature")
-                .unwrap()
-                .parse::<String>()?
-                .as_str(),
-        );
+    if matches.is_present("signatures") {
+        conf.signatures = ServerConfig::parse_signatures_file(Path::new(
+            matches.value_of("signatures").unwrap(),
+        ))?;
+        info!("Accepted signatures: {:?}", conf.signatures);
     }
 
     server::run(&conf)?;

@@ -22,6 +22,12 @@ impl From<&str> for Signature {
     }
 }
 
+impl From<&[u8]> for Signature {
+    fn from(bytes: &[u8]) -> Self {
+        Self(Bytes::copy_from_slice(bytes))
+    }
+}
+
 pub type BeaconInfos = serde_json::Value;
 
 /// Message returned to the scanner (JSON formatted).

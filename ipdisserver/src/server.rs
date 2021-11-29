@@ -1,5 +1,5 @@
 use crate::bytes::{Answer, BeaconInfos, Signature};
-use crate::conf::BeaconConfig;
+use crate::conf::ServerConfig;
 use color_eyre::Report;
 use gethostname::gethostname;
 use serde_json;
@@ -12,12 +12,12 @@ use tracing::{debug, info, trace};
 const RECV_BUFFER_LENGHT: usize = 64;
 const REFRACTORY_PERIOD: f64 = 3.0; // needed to reduce useless communications and to allow every beacon to be polled in a crowded network
 
-pub fn run(conf: &BeaconConfig) -> Result<(), Report> {
+pub fn run(conf: &ServerConfig) -> Result<(), Report> {
     {
         let socket = UdpSocket::bind(format!("{}:{}", conf.listening_addr, conf.port))?;
         info!(?socket, "Listening for scanner requests.");
         loop {
-            serve_single(&socket, &conf.signature)?;
+            serve_single(&socket, &conf.signatures)?;
             thread::sleep(Duration::from_secs_f64(REFRACTORY_PERIOD));
         }
     } // the socket is closed here
@@ -37,10 +37,10 @@ fn get_answer() -> Result<Answer, Report> {
     Ok(answer)
 }
 
-fn serve_single(socket: &UdpSocket, expected_signature: &Signature) -> Result<(), Report> {
-    let (addr, received_signature) = receive(socket)?;
-    if received_signature.0 != expected_signature.0 {
-        debug!(%received_signature, %addr, "Bad signature received, not answering.");
+fn serve_single(socket: &UdpSocket, expected_signatures: &[Signature]) -> Result<(), Report> {
+    let (addr, received) = receive(socket)?;
+    if !is_signature_vaid(&received, expected_signatures) {
+        debug!(%received, %addr, "Bad signature received, not answering.");
         return Ok(());
     };
     let answer = get_answer()?;
@@ -49,13 +49,24 @@ fn serve_single(socket: &UdpSocket, expected_signature: &Signature) -> Result<()
     Ok(())
 }
 
-fn receive(socket: &UdpSocket) -> Result<(SocketAddr, Answer), Report> {
+fn is_signature_vaid(received: &Signature, expected: &[Signature]) -> bool {
+    trace!(%received, ?expected, "Validating received signature.");
+    for signature in expected.iter() {
+        if signature == received {
+            trace!(%received, "Received signature matches.");
+            return true;
+        }
+    }
+    false
+}
+
+fn receive(socket: &UdpSocket) -> Result<(SocketAddr, Signature), Report> {
     // Receives a single datagram message on the socket. If `buf` is too small to hold
     // the message, it will be cut off.
     let mut buf = [0; RECV_BUFFER_LENGHT];
     trace!(?socket, "Listening.");
     let (lenght, source) = socket.recv_from(&mut buf)?;
-    let received: Answer = (&buf[..lenght]).into();
+    let received: Signature = (&buf[..lenght]).into();
     trace!(%lenght, %source, "Datagram received.");
     Ok((source, received))
 }
@@ -75,7 +86,7 @@ mod test {
     #[test]
     #[tracing_test::traced_test]
     fn test_serve_localhost() {
-        let conf = BeaconConfig::default();
+        let conf = ServerConfig::default();
         let sending_socket = UdpSocket::bind(format!("{}:{}", Ipv4Addr::UNSPECIFIED, 0)).unwrap();
         let receiving_socket = sending_socket
             .try_clone()
@@ -84,15 +95,15 @@ mod test {
         let server_port = beacon_socket.local_addr().unwrap().port();
         let conf_clone = conf.clone();
         let server_handle = thread::spawn(move || {
-            serve_single(&beacon_socket, &conf_clone.signature).unwrap();
+            serve_single(&beacon_socket, &conf_clone.signatures).unwrap();
         });
         let scanner_handle = thread::spawn(move || {
             thread::sleep(Duration::from_secs_f64(0.1));
             let beacon_addr = SocketAddr::from(([127, 0, 0, 1], server_port));
             sending_socket
-                .send_to(&conf.signature.0, beacon_addr)
+                .send_to(conf.signatures.first().unwrap().0.as_ref(), beacon_addr)
                 .unwrap();
-            println!("[{}] <- {}", beacon_addr, &conf.signature);
+            println!("[{}] <- {:?}", beacon_addr, &conf.signatures);
         });
         let response = receive(&receiving_socket).unwrap();
         println!("[{}] -> {}", response.0, response.1);
