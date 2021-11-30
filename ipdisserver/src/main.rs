@@ -38,6 +38,16 @@ fn main() -> Result<(), Report> {
                 .help("Path of a file with accepted signatures, one per line. UTF-8 characters are allowed. Each signature length must be 128 bytes at most. If not specified a single signature is accepted: `ipdisbeacon`")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("inventory")
+                .short("f")
+                .long("answer-file")
+                .value_name("ANSWER_FILE")
+                .help("Specify a list of files to execute, the output will be added to the answer. The output must be valid JSON or in the format `key = value` or `key = [value1, value2, value3]` (one per line). Repeat the option for each file.")
+                .multiple(true)
+                .number_of_values(1)
+                .takes_value(true),
+        )
         .get_matches();
     trace!(?matches);
 
@@ -54,6 +64,14 @@ fn main() -> Result<(), Report> {
             matches.value_of("signatures").unwrap(),
         ))?;
         info!("Accepted signatures: {:?}", conf.signatures);
+    }
+    if matches.is_present("inventory") {
+        conf.inventory_files = matches
+            .values_of("inventory")
+            .unwrap()
+            .into_iter()
+            .map(Path::new)
+            .collect();
     }
 
     server::run(&conf)?;
