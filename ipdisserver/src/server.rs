@@ -9,7 +9,7 @@ use std::thread;
 use std::time::Duration;
 use tracing::{debug, info, trace};
 
-const RECV_BUFFER_LENGHT: usize = 64;
+const RECV_BUFFER_LENGHT: usize = 128; // update ipdisserver and ipdisscan CLI documentation if changed
 const REFRACTORY_PERIOD: f64 = 3.0; // needed to reduce useless communications and to allow every beacon to be polled in a crowded network
 
 pub fn run(conf: &ServerConfig) -> Result<(), Report> {

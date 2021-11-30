@@ -6,6 +6,7 @@ use std::net::Ipv4Addr;
 const SCANNER_PORT_DEFAULT: u16 = 1902;
 const SCAN_PERIOD_DEFAULT: f64 = 1.0;
 const BROADCAST_ADDR_DEFAULT: Ipv4Addr = Ipv4Addr::BROADCAST; // 255.255.255.255
+const EXTRA_SIGNATURE_DEFAULT: &str = "pang-supremacy-maritime-revoke-afterglow"; // compatibility with original ipdiscan
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScannerConfig {
@@ -13,7 +14,7 @@ pub struct ScannerConfig {
     pub scan_period: f64,
     pub broadcast_addr: Ipv4Addr,
     pub target_port: u16,
-    pub signature: Signature,
+    pub signatures: Vec<Signature>,
 }
 
 impl Default for ScannerConfig {
@@ -23,7 +24,10 @@ impl Default for ScannerConfig {
             scan_period: SCAN_PERIOD_DEFAULT,
             broadcast_addr: BROADCAST_ADDR_DEFAULT,
             target_port: SERVER_PORT_DEFAULT,
-            signature: Signature::from(SIGNATURE_DEFAULT),
+            signatures: vec![
+                Signature::from(SIGNATURE_DEFAULT),
+                Signature::from(EXTRA_SIGNATURE_DEFAULT),
+            ],
         }
     }
 }
@@ -43,7 +47,10 @@ mod test {
                 scan_period: 1.0f64,
                 broadcast_addr: Ipv4Addr::new(255, 255, 255, 255),
                 target_port: 1901,
-                signature: Signature::from("ipdisbeacon")
+                signatures: vec![
+                    Signature::from("ipdisbeacon"),
+                    Signature::from("pang-supremacy-maritime-revoke-afterglow")
+                ]
             }
         );
     }

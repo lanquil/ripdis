@@ -13,13 +13,13 @@ const SCANNER_ADDR: Ipv4Addr = Ipv4Addr::UNSPECIFIED; // "0.0.0.0"
 pub fn run(socket: &UdpSocket, conf: &ScannerConfig) -> Result<(), Report> {
     let frequency = 1.0 / conf.scan_period;
     {
-        info!(?socket, %frequency, "Scanning for beacons.");
+        info!(?socket, %frequency, ?conf.signatures, "Scanning for beacons.");
         loop {
             send_single(
                 socket,
                 conf.broadcast_addr,
                 conf.target_port,
-                &conf.signature,
+                &conf.signatures,
             )?;
             wait_duty_cycle(conf.scan_period);
         }
@@ -37,17 +37,19 @@ fn send_single(
     socket: &UdpSocket,
     broadcast_addr: Ipv4Addr,
     target_port: u16,
-    signature: &Signature,
+    signatures: &[Signature],
 ) -> Result<(), Report> {
     let beacon_broadcast_addr = SocketAddr::from((broadcast_addr, target_port));
-    socket
-        .send_to(&signature.0, beacon_broadcast_addr)
-        .expect("Failed broadcasting signature");
-    trace!(
-        dest = %beacon_broadcast_addr,
-        payload = ?signature.0,
-        "Broadcasted."
-    );
+    for signature in signatures {
+        socket
+            .send_to(&signature.0, beacon_broadcast_addr)
+            .expect("Failed broadcasting signature");
+        trace!(
+            dest = %beacon_broadcast_addr,
+            payload = ?signature.0,
+            "Broadcasted."
+        );
+    }
     Ok(())
 }
 
@@ -65,7 +67,7 @@ mod test {
     #[tracing_test::traced_test]
     fn test_send() {
         let signature: Signature = Signature::from("test-signature");
-        let signature_c = signature.clone();
+        let signatures = vec![signature.clone()];
         let listener_socket = UdpSocket::bind(format!("{}:{}", "0.0.0.0", 0)).unwrap();
         let mut buf = [0; 14];
         let listener_port = listener_socket.local_addr().unwrap().port();
@@ -73,7 +75,7 @@ mod test {
         let sender_handle = thread::spawn(move || {
             thread::sleep(Duration::from_secs_f64(0.1));
             let socket = socket_setup(1902).unwrap();
-            send_single(&socket, Ipv4Addr::BROADCAST, listener_port, &signature_c).unwrap();
+            send_single(&socket, Ipv4Addr::BROADCAST, listener_port, &signatures).unwrap();
         });
 
         let (lenght, _source) = listener_socket.recv_from(&mut buf).unwrap();
