@@ -1,10 +1,10 @@
-use crate::bytes::{Answer, BeaconInfos, Signature};
+use crate::answers::get_answer;
+use crate::bytes::{Answer, Signature};
 use crate::conf::ServerConfig;
 use color_eyre::Report;
-use gethostname::gethostname;
-use serde_json;
 use std::net::SocketAddr;
 use std::net::UdpSocket;
+use std::path::Path;
 use std::thread;
 use std::time::Duration;
 use tracing::{debug, info, trace};
@@ -17,33 +17,23 @@ pub fn run(conf: &ServerConfig) -> Result<(), Report> {
         let socket = UdpSocket::bind(format!("{}:{}", conf.listening_addr, conf.port))?;
         info!(?socket, "Listening for scanner requests.");
         loop {
-            serve_single(&socket, &conf.signatures)?;
+            serve_single(&socket, &conf.signatures, &conf.inventory_files)?;
             thread::sleep(Duration::from_secs_f64(REFRACTORY_PERIOD));
         }
     } // the socket is closed here
 }
 
-fn get_hostname() -> String {
-    gethostname().to_string_lossy().into()
-}
-
-fn get_answer() -> Result<Answer, Report> {
-    let hostname = BeaconInfos::String(get_hostname());
-    let hostname_key = "hostname".to_string();
-    let mut hostname_answer = serde_json::map::Map::new();
-    hostname_answer.insert(hostname_key, hostname);
-    let basic_answer = BeaconInfos::Object(hostname_answer);
-    let answer = Answer::from(serde_json::to_string(&basic_answer)?);
-    Ok(answer)
-}
-
-fn serve_single(socket: &UdpSocket, expected_signatures: &[Signature]) -> Result<(), Report> {
+fn serve_single(
+    socket: &UdpSocket,
+    expected_signatures: &[Signature],
+    inventory_files: &[&Path],
+) -> Result<(), Report> {
     let (addr, received) = receive(socket)?;
     if !is_signature_vaid(&received, expected_signatures) {
         debug!(%received, %addr, "Bad signature received, not answering.");
         return Ok(());
     };
-    let answer = get_answer()?;
+    let answer = get_answer(inventory_files)?;
     respond(socket, &addr, &answer)?;
     info!(%answer, %addr, "Answered.");
     Ok(())
