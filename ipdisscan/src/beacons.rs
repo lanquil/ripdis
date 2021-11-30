@@ -1,11 +1,9 @@
 use color_eyre::Report;
+use crossbeam::channel::{unbounded, Receiver, Sender};
 use ipdisserver::bytes::Answer;
 use std::collections::HashMap;
-use std::collections::VecDeque;
 use std::fmt;
 use std::net::IpAddr;
-use std::sync::Arc;
-use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 use terminal_spinners::DOTS8 as SPINNER;
@@ -31,7 +29,7 @@ impl fmt::Display for BeaconAnswer {
 
 type BeaconAnswers = HashMap<IpAddr, BeaconAnswer>;
 
-pub fn run(in_queue: Arc<Mutex<VecDeque<BeaconAnswer>>>) -> Result<(), Report> {
+pub fn run(channel_receiving_end: Receiver<BeaconAnswer>) -> Result<(), Report> {
     let mut beacons = BeaconAnswers::new();
     debug!(%PRINT_PERIOD, "Printing beacons.");
 
@@ -40,7 +38,7 @@ pub fn run(in_queue: Arc<Mutex<VecDeque<BeaconAnswer>>>) -> Result<(), Report> {
     stdout.execute(cursor::MoveTo(0, 0))?;
     let mut spinner_handle = get_spinner();
     loop {
-        beacons = beacons_update(beacons, in_queue.clone())?;
+        beacons = beacons_update(beacons, channel_receiving_end.clone())?;
         thread::sleep(Duration::from_secs_f64(PRINT_PERIOD));
         spinner_handle.stop_and_clear();
         stdout.execute(cursor::MoveTo(0, 0))?;
@@ -50,20 +48,8 @@ pub fn run(in_queue: Arc<Mutex<VecDeque<BeaconAnswer>>>) -> Result<(), Report> {
     }
 }
 
-pub fn put_in_queue(
-    beacon_answer: BeaconAnswer,
-    in_queue: Arc<Mutex<VecDeque<BeaconAnswer>>>,
-) -> Result<(), Report> {
-    debug!(?beacon_answer, "Adding beacon answer to queue");
-    in_queue
-        .lock()
-        .expect("Error accessing queue")
-        .push_back(beacon_answer);
-    Ok(())
-}
-
-pub fn init_queue() -> Result<Arc<Mutex<VecDeque<BeaconAnswer>>>, Report> {
-    Ok(Arc::new(Mutex::new(VecDeque::new())))
+pub fn init_channel() -> (Sender<BeaconAnswer>, Receiver<BeaconAnswer>) {
+    unbounded()
 }
 
 fn get_spinner() -> SpinnerHandle {
@@ -75,14 +61,14 @@ fn get_spinner() -> SpinnerHandle {
 
 fn beacons_update(
     mut beacons: BeaconAnswers,
-    in_queue: Arc<Mutex<VecDeque<BeaconAnswer>>>,
+    channel_receiving_end: Receiver<BeaconAnswer>,
 ) -> Result<BeaconAnswers, Report> {
     loop {
-        let beacon = match in_queue.lock().expect("Error accessing queue").pop_front() {
-            None => return Ok(beacons),
-            Some(b) => b,
+        let beacon = match channel_receiving_end.try_recv() {
+            Ok(b) => b,
+            _ => return Ok(beacons),
         };
-        trace!(?beacon, "Updating beacons");
+        trace!(?beacon, "Updating beacons.");
         beacons.insert(beacon.addr, beacon);
     }
 }
@@ -107,7 +93,7 @@ mod test {
     #[test]
     #[tracing_test::traced_test]
     fn test_beacons_update() {
-        let queue = init_queue().unwrap();
+        let (sender, receiver) = init_channel();
         let answer1 = BeaconAnswer {
             addr: IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)),
             payload: Answer::default(),
@@ -124,12 +110,12 @@ mod test {
             addr: IpAddr::V4(Ipv4Addr::new(192, 168, 0, 2)),
             payload: Answer::default(),
         };
-        put_in_queue(answer2.clone(), queue.clone()).unwrap();
-        put_in_queue(answer1.clone(), queue.clone()).unwrap();
-        put_in_queue(answer1_new.clone(), queue.clone()).unwrap();
-        put_in_queue(answer2_new.clone(), queue.clone()).unwrap();
+        sender.send(answer2.clone()).unwrap();
+        sender.send(answer1.clone()).unwrap();
+        sender.send(answer1_new.clone()).unwrap();
+        sender.send(answer2_new.clone()).unwrap();
         let mut beacons = BeaconAnswers::new();
-        beacons = beacons_update(beacons, queue).unwrap();
+        beacons = beacons_update(beacons, receiver).unwrap();
         assert_eq!(
             beacons.get(&answer1.addr).unwrap().payload,
             answer1_new.payload
@@ -143,19 +129,19 @@ mod test {
     #[test]
     #[tracing_test::traced_test]
     fn test_put_in_queue() {
-        let queue = init_queue().unwrap();
+        let (sender, receiver) = init_channel();
         let an_answer = BeaconAnswer {
             addr: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             payload: Answer::default(),
         };
-        put_in_queue(an_answer.clone(), queue.clone()).unwrap();
-        assert_eq!(queue.lock().unwrap().pop_front().unwrap(), an_answer);
+        sender.send(an_answer.clone()).unwrap();
+        assert_eq!(receiver.try_recv().unwrap(), an_answer);
     }
 
     #[test]
     #[tracing_test::traced_test]
     fn test_init_in_queue() {
-        let queue = init_queue().unwrap();
-        assert!(queue.lock().unwrap().pop_front().is_none()); // expect empty queue
+        let (_sender, receiver) = init_channel();
+        assert!(receiver.is_empty());
     }
 }
