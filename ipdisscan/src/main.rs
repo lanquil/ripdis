@@ -77,10 +77,9 @@ fn main() -> Result<(), Report> {
 
     let socket = socket_setup(conf.port)?;
     let socket_c = socket.try_clone()?;
-    let queue = beacons::init_queue()?;
-    let queue_c = queue.clone();
-    thread::spawn(move || listen::run(&socket_c, queue_c));
+    let (channel_send_end, channel_receive_end) = beacons::init_channel();
+    thread::spawn(move || listen::run(&socket_c, channel_send_end));
     thread::spawn(move || broadcast::run(&socket, &conf));
-    beacons::run(queue)?;
+    beacons::run(channel_receive_end)?;
     Ok(())
 }

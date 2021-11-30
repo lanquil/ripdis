@@ -1,31 +1,25 @@
-use crate::beacons::{put_in_queue, BeaconAnswer};
+use crate::beacons::BeaconAnswer;
 use color_eyre::Report;
+use crossbeam::channel::Sender;
 use ipdisserver::bytes::Answer;
-use std::collections::VecDeque;
-use std::sync::Arc;
-use std::sync::Mutex;
-
 use std::net::UdpSocket;
 use tracing::{debug, info, trace};
 
 const RECV_BUFFER_LENGHT: usize = 2usize.pow(10); // 1KiB
 
-pub fn run(socket: &UdpSocket, queue: Arc<Mutex<VecDeque<BeaconAnswer>>>) -> Result<(), Report> {
+pub fn run(socket: &UdpSocket, channel_send_end: Sender<BeaconAnswer>) -> Result<(), Report> {
     {
         info!(?socket, "Listening for beacon answers.");
         loop {
-            serve_single(socket, queue.clone())?;
+            serve_single(socket, channel_send_end.clone())?;
         }
     }
 }
 
-fn serve_single(
-    socket: &UdpSocket,
-    queue: Arc<Mutex<VecDeque<BeaconAnswer>>>,
-) -> Result<(), Report> {
+fn serve_single(socket: &UdpSocket, channel_send_end: Sender<BeaconAnswer>) -> Result<(), Report> {
     let beacon_answer = receive(socket)?;
     trace!(?beacon_answer.addr, %beacon_answer.payload, "Putting in queue.");
-    put_in_queue(beacon_answer, queue)?;
+    channel_send_end.send(beacon_answer)?;
     Ok(())
 }
 
