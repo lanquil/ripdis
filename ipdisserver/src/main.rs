@@ -35,7 +35,7 @@ fn main() -> Result<(), Report> {
                 .short("s")
                 .long("signatures-file")
                 .value_name("SIGNATURES_FILE")
-                .help("Path of a file with accepted signatures, one per line. If not specified a single signature is accepted: `ipdisbeacon`")
+                .help("Path of a file with accepted signatures, one per line. UTF-8 characters are allowed. Each signature length must be 128 bytes at most. If not specified a single signature is accepted: `ipdisbeacon`")
                 .takes_value(true),
         )
         .get_matches();

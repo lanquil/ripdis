@@ -22,7 +22,7 @@ fn main() -> Result<(), Report> {
                 .short("p")
                 .long("scanner-source-port")
                 .value_name("PORT")
-                .help("Default: 1902")
+                .help("UDP port used to receive ipdisserver answers. Default: 1902")
                 .takes_value(true),
         )
         .arg(
@@ -30,7 +30,7 @@ fn main() -> Result<(), Report> {
                 .short("b")
                 .long("broadcast-target-port")
                 .value_name("TARGET-PORT")
-                .help("Default: 1901")
+                .help("ipdisserver listening UDP port. Default: 1901")
                 .takes_value(true),
         )
         .arg(
@@ -38,7 +38,7 @@ fn main() -> Result<(), Report> {
                 .short("a")
                 .long("broadcast-addr")
                 .value_name("ADDR")
-                .help("Default: 255.255.255.255")
+                .help("Broadcasting address. Default: 255.255.255.255")
                 .takes_value(true),
         )
         .arg(
@@ -46,7 +46,9 @@ fn main() -> Result<(), Report> {
                 .short("s")
                 .long("signature")
                 .value_name("SIGN")
-                .help("Default: `ipdisbeacon`")
+                .multiple(true)
+                .number_of_values(1)
+                .help("Strings used to recognize ipdisserver instances. UTF-8 characters are allowed. Each signature length must be 128 bytes at most. This option can be used more than once. Default: `ipdisbeacon` and `pang-supremacy-maritime-revoke-afterglow` (the second one is for backward compatibility).")
                 .takes_value(true),
         )
         .get_matches();
@@ -64,7 +66,13 @@ fn main() -> Result<(), Report> {
         conf.broadcast_addr = Ipv4Addr::from_str(&str_broadcast_addr)?;
     }
     if matches.is_present("signature") {
-        conf.signature = Signature::from(matches.value_of("signature").unwrap());
+        conf.signatures = matches
+            .values_of("signature")
+            .unwrap()
+            .into_iter()
+            .map(Signature::from)
+            .collect();
+        // replace default signatures
     }
 
     let socket = socket_setup(conf.port)?;
