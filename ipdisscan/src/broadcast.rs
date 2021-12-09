@@ -1,6 +1,6 @@
 use crate::conf::ScannerConfig;
 use color_eyre::Report;
-use ipdisserver::bytes::Signature;
+use ipdisserver::signature::Signature;
 use std::net::Ipv4Addr;
 use std::net::SocketAddr;
 use std::net::UdpSocket;

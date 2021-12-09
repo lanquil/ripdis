@@ -6,7 +6,7 @@ use ipdisscan::broadcast::socket_setup;
 use ipdisscan::conf::ScannerConfig;
 use ipdisscan::listen;
 use ipdisscan::setup::setup;
-use ipdisserver::bytes::Signature;
+use ipdisserver::signature::Signature;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 use std::thread;

@@ -1,6 +1,7 @@
 use crate::answers::get_answer;
-use crate::bytes::{Answer, Signature};
+use crate::answers::Answer;
 use crate::conf::ServerConfig;
+use crate::signature::Signature;
 use color_eyre::Report;
 use std::net::SocketAddr;
 use std::net::UdpSocket;
@@ -85,7 +86,12 @@ mod test {
         let server_port = beacon_socket.local_addr().unwrap().port();
         let conf_clone = conf.clone();
         let server_handle = thread::spawn(move || {
-            serve_single(&beacon_socket, &conf_clone.signatures).unwrap();
+            serve_single(
+                &beacon_socket,
+                &conf_clone.signatures,
+                &conf_clone.inventory_files,
+            )
+            .unwrap();
         });
         let scanner_handle = thread::spawn(move || {
             thread::sleep(Duration::from_secs_f64(0.1));

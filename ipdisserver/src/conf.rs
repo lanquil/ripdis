@@ -1,4 +1,4 @@
-use crate::bytes::Signature;
+use crate::signature::Signature;
 use color_eyre::Report;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Lines};
@@ -80,7 +80,7 @@ mod test {
     fn test_parse_signature_file() {
         let datadir = std::env::temp_dir()
             .as_path()
-            .join("rust-test-ripdis-datadir/");
+            .join("rust-ipdisserver-test-conf-datadir/");
         // TODO: windows
         if let Err(error) = std::fs::create_dir(&datadir) {
             match error.kind() {
