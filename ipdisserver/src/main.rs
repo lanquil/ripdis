@@ -43,7 +43,7 @@ fn main() -> Result<(), Report> {
                 .short("f")
                 .long("answer-file")
                 .value_name("ANSWER_FILE")
-                .help("Specify a list of files to execute, the output will be added to the answer. The output must be valid JSON or in the format `key = value` or `key = [value1, value2, value3]` (one per line). Repeat the option for each file.")
+                .help("Specify a list of files to execute, the output will be added to the answer. The output must be in the format `key0=value0\nkey1=value1\n...`. Repeat the option for each file.")
                 .multiple(true)
                 .number_of_values(1)
                 .takes_value(true),
