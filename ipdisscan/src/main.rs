@@ -13,7 +13,6 @@ use std::thread;
 use tracing::trace;
 
 fn main() -> Result<(), Report> {
-    setup()?;
     let matches = App::new("ipdisscan")
         .version("0.1.0")
         .about("Search for active instances of ipdisserver and get system informations.")
@@ -52,6 +51,8 @@ fn main() -> Result<(), Report> {
                 .takes_value(true),
         )
         .get_matches();
+
+    setup()?;
     trace!(?matches);
 
     let mut conf = ScannerConfig::default();

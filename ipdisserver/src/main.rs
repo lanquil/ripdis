@@ -9,8 +9,6 @@ use std::str::FromStr;
 use tracing::{debug, info, trace};
 
 fn main() -> Result<(), Report> {
-    setup()?;
-    debug!("Tracing setup complete, starting IP discovery beacon.");
     let matches = App::new("ipdisserver")
         .version("0.1.0")
         .about("Answer with system info to ipdisscan broadcasts.")
@@ -49,6 +47,9 @@ fn main() -> Result<(), Report> {
                 .takes_value(true),
         )
         .get_matches();
+
+    setup()?;
+    debug!("Tracing setup complete, starting IP discovery beacon.");
     trace!(?matches);
 
     let mut conf = ServerConfig::default();
