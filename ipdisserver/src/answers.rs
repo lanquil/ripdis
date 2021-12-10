@@ -1,16 +1,53 @@
 use crate::bytes::safe_format_bytes;
-use crate::hostname::get_hostname;
+use crate::inventory::{ExecuteInventory, InternalInventory, InventoryFile};
 use bytes::Bytes;
 use color_eyre::Report;
 use serde_json;
 use serde_json::value::Value;
 use std::fmt;
-use std::path::{Path, PathBuf};
-use tracing::{error, trace, warn};
+use std::path::Path;
+use tracing::{debug, error, trace, warn};
 
 const FALLBACK_INFO_KEY: &str = "info";
 
 pub type BeaconInfos = serde_json::map::Map<String, Value>;
+
+/// Expecting one ore more lines formatted according to https://docs.mender.io/3.0/client-installation/inventory
+pub trait FromCmdOutput {
+    fn from_cmd_output(lines: &str) -> Result<BeaconInfos, Report>;
+}
+
+impl FromCmdOutput for BeaconInfos {
+    fn from_cmd_output(lines: &str) -> Result<BeaconInfos, Report> {
+        let separator = "=";
+        let mut res = BeaconInfos::new();
+        for line in lines.lines() {
+            if let Some((key, value)) = line.clone().split_once(separator) {
+                match res.get_mut(&key.to_string()) {
+                    None => {
+                        res.insert(key.into(), Value::String(value.to_string()));
+                    }
+                    Some(previous_value) => {
+                        match previous_value {
+                            Value::String(previous_string) => {
+                                *previous_value = Value::Array(vec![
+                                    Value::String(previous_string.to_string()),
+                                    Value::String(value.to_string()),
+                                ]);
+                            }
+                            Value::Array(previous_array) => {
+                                previous_array.push(Value::String(value.to_string()));
+                                *previous_value = Value::Array(previous_array.to_vec());
+                            }
+                            _ => panic!(), // TODO
+                        };
+                    }
+                };
+            }
+        }
+        Ok(res)
+    }
+}
 
 /// Message returned to the scanner (JSON formatted).
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -76,9 +113,9 @@ where
     P: AsRef<Path>,
 {
     let mut hostname_answer = get_internal_inventory_answer(hostname_inventory);
-    trace!(?hostname_answer);
+    debug!(?hostname_answer);
     let mut inventory_answer = get_inventory_files_answer(inventory_files);
-    trace!(?inventory_answer);
+    debug!(?inventory_answer);
     let answer = Answer::from(serde_json::to_string(&join_answers(
         &mut hostname_answer,
         &mut inventory_answer,
@@ -103,70 +140,19 @@ where
     for inventory_path in inventory_file_paths {
         let inventory = InventoryFile::from(inventory_path.as_ref());
         trace!(?inventory, "Executing inventory file.");
-        res = join_answers(&mut res, &mut inventory.execute().output);
+        let mut inventory_result = inventory.execute();
+        trace!(?inventory_result, ?inventory, "Inventory file executed.");
+        res = join_answers(&mut res, &mut inventory_result.output);
         trace!(?res, "Updated inventory info.");
     }
     res
-}
-
-// #[derive(Debug)]
-struct InternalInventory {
-    key: String,
-    source: Box<dyn Fn() -> String>,
-}
-
-impl Default for InternalInventory {
-    fn default() -> Self {
-        Self {
-            key: "hostname".into(),
-            source: Box::from(get_hostname),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-struct InventoryFile {
-    path: PathBuf,
-}
-
-impl From<&Path> for InventoryFile {
-    fn from(path: &Path) -> Self {
-        Self { path: path.into() }
-    }
-}
-
-trait ExecuteInventory {
-    fn execute(&self) -> InventoryOutput;
-}
-
-impl ExecuteInventory for InternalInventory {
-    fn execute(&self) -> InventoryOutput {
-        let raw_output = (*self.source)();
-        let mut output = BeaconInfos::new();
-        output.insert(self.key.clone(), raw_output.clone().into());
-        InventoryOutput { raw_output, output }
-    }
-}
-
-impl ExecuteInventory for InventoryFile {
-    fn execute(&self) -> InventoryOutput {
-        let raw_output = "".into();
-        let output = BeaconInfos::new();
-        todo!();
-        InventoryOutput { raw_output, output }
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-struct InventoryOutput {
-    raw_output: String,
-    output: BeaconInfos,
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use std::collections::HashMap;
+    use std::os::unix::fs::PermissionsExt;
     use std::path::PathBuf;
 
     #[test]
@@ -224,15 +210,20 @@ mod test {
         };
         let path = datadir.join(filename);
         std::fs::write(&path, content).unwrap();
+        let file = std::fs::File::open(&path).unwrap();
+        let metadata = file.metadata().unwrap();
+        let mut permissions = metadata.permissions();
+        permissions.set_mode(0o755);
+        file.set_permissions(permissions).unwrap();
         path.into()
     }
 
     #[test]
     #[tracing_test::traced_test]
     fn test_get_answer() {
-        let echo_list_content = "#!/bin/sh\necho 'foo = [bar, baz]'";
+        let echo_list_content = "#!/bin/sh\necho 'foo=bar\nfoo=baz'";
         let echo_multiple_lines_content =
-            "#!/bin/sh\necho 'foo1 = 1'\necho 'foo2 = 2'\necho\necho 'foo3=3'\necho";
+            "#!/bin/sh\necho 'foo1=1'\necho 'foo2=2'\necho\necho 'foo3 = 3'\necho";
         let echo_nothing_conent = "#!/bin/sh\necho";
         let wrong_format_conent = "#!/bin/sh\necho 'foo wrong'";
         let return_error_conent = "#!/bin/sh\necho 'some error'\nexit 1";
@@ -255,17 +246,20 @@ mod test {
             empty_file_path,
             nonexisting_path,
         ];
-        let expected = r#"{"hostname":"dummy-hostname","foo":["bar","baz"],"foo1":1,"foo2":2,"foo3":3,"info":"foo wrong"}"#;
+        let expected = r#"{"foo":["bar","baz"],"foo1":"1","foo2":"2","foo3 ":" 3","hostname":"dummy-hostname"}"#;
         assert_eq!(
-            get_answer_hostname_and_files(
-                InternalInventory {
-                    key: "hostname".to_string(),
-                    source: Box::new(|| "dummy-hostname".to_string())
-                }, // mock hostname
-                inventory_files.as_slice()
+            std::str::from_utf8(
+                &get_answer_hostname_and_files(
+                    InternalInventory {
+                        key: "hostname".to_string(),
+                        source: Box::new(|| "dummy-hostname".to_string())
+                    }, // mock hostname
+                    inventory_files.as_slice()
+                )
+                .unwrap()
+                .0
             )
-            .unwrap()
-            .0,
+            .unwrap(),
             expected
         );
     }

@@ -1,7 +1,9 @@
 pub mod answers;
 pub mod bytes;
 pub mod conf;
+pub mod exec;
 pub mod hostname;
+pub mod inventory;
 pub mod server;
 pub mod setup;
 pub mod signature;
