@@ -39,7 +39,7 @@ impl FromCmdOutput for BeaconInfos {
                                 previous_array.push(Value::String(value.to_string()));
                                 *previous_value = Value::Array(previous_array.to_vec());
                             }
-                            _ => panic!(), // TODO
+                            _ => unreachable!(), // Only inserting String or Array!
                         };
                     }
                 };
