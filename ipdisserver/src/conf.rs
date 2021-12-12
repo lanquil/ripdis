@@ -1,4 +1,4 @@
-use crate::bytes::Signature;
+use crate::signature::Signature;
 use color_eyre::Report;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Lines};
@@ -12,23 +12,25 @@ const LISTENING_ADDR_DEFAULT: Ipv4Addr = Ipv4Addr::UNSPECIFIED; // "0.0.0.0"
 
 #[derive(Debug, Clone, PartialEq)]
 /// Server configurations.
-pub struct ServerConfig {
+pub struct ServerConfig<'a> {
     pub port: u16,
     pub listening_addr: Ipv4Addr,
     pub signatures: Vec<Signature>,
+    pub inventory_files: Vec<&'a Path>,
 }
 
-impl Default for ServerConfig {
+impl Default for ServerConfig<'_> {
     fn default() -> Self {
         Self {
             port: SERVER_PORT_DEFAULT,
             listening_addr: LISTENING_ADDR_DEFAULT,
             signatures: vec![Signature::from(SIGNATURE_DEFAULT)],
+            inventory_files: Vec::new(),
         }
     }
 }
 
-impl ServerConfig {
+impl ServerConfig<'_> {
     /// Read a sequence of Signature from a file, one per line.
     /// Empty lines are ignored.
     pub fn parse_signatures_file(path: &Path) -> Result<Vec<Signature>, Report> {
@@ -67,7 +69,8 @@ mod test {
             ServerConfig {
                 port: 1901,
                 listening_addr: Ipv4Addr::new(0, 0, 0, 0),
-                signatures: vec![Signature::from("ipdisbeacon")]
+                signatures: vec![Signature::from("ipdisbeacon")],
+                inventory_files: Vec::new(),
             }
         );
     }
@@ -77,7 +80,7 @@ mod test {
     fn test_parse_signature_file() {
         let datadir = std::env::temp_dir()
             .as_path()
-            .join("rust-test-ripdis-datadir/");
+            .join("rust-ipdisserver-test-conf-datadir/");
         // TODO: windows
         if let Err(error) = std::fs::create_dir(&datadir) {
             match error.kind() {

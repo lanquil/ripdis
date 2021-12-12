@@ -1,6 +1,6 @@
-use ipdisserver::bytes::Signature;
 use ipdisserver::conf::SERVER_PORT_DEFAULT;
 use ipdisserver::conf::SIGNATURE_DEFAULT;
+use ipdisserver::signature::Signature;
 use std::net::Ipv4Addr;
 
 const SCANNER_PORT_DEFAULT: u16 = 1902;

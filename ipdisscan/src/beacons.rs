@@ -1,6 +1,6 @@
 use color_eyre::Report;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use ipdisserver::bytes::Answer;
+use ipdisserver::answers::Answer;
 use std::collections::HashMap;
 use std::fmt;
 use std::net::IpAddr;

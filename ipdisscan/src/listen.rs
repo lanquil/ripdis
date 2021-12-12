@@ -1,7 +1,7 @@
 use crate::beacons::BeaconAnswer;
 use color_eyre::Report;
 use crossbeam::channel::Sender;
-use ipdisserver::bytes::Answer;
+use ipdisserver::answers::Answer;
 use std::net::UdpSocket;
 use tracing::{debug, info, trace};
 

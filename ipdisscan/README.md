@@ -25,6 +25,8 @@ simil-YAML format, being continuously updated.
 
 Run `ipdisscan --help` for the CLI documentation.
 
+Logs go to standard error.
+
 ### Environment variables:
 
 [`RUST_LOG`](https://docs.rs/env_logger/0.9.0/env_logger/#enabling-logging)

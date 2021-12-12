@@ -1,4 +1,5 @@
 use color_eyre::Report;
+use std::io;
 use tracing_subscriber::EnvFilter;
 
 pub fn setup() -> Result<(), Report> {
@@ -10,6 +11,7 @@ pub fn setup() -> Result<(), Report> {
         std::env::set_var("RUST_LOG", "warn")
     }
     tracing_subscriber::fmt::fmt()
+        .with_writer(io::stderr)
         .with_env_filter(EnvFilter::from_default_env())
         .init();
     Ok(())
