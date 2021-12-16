@@ -38,7 +38,7 @@ fn main() -> Result<(), Report> {
                 .short("s")
                 .long("signatures-file")
                 .value_name("SIGNATURES_FILE")
-                .help("Path of a file with accepted signatures, one per line. UTF-8 characters are allowed. Each signature length must be 128 bytes at most. If not specified a single signature is accepted: `ipdisbeacon`")
+                .help("Path of a file with accepted signatures, one per line. UTF-8 characters are allowed. Each signature length must be 128 bytes at most. If not specified a single signature is accepted: `ipdisbeacon`.")
                 .takes_value(true),
         )
         .arg(
@@ -46,7 +46,7 @@ fn main() -> Result<(), Report> {
                 .short("f")
                 .long("answer-file")
                 .value_name("ANSWER_FILE")
-                .help("Specify a list of files to execute, the output will be added to the answer. The output must be in the format `key0=value0\nkey1=value1\n...`. Repeat the option for each file.")
+                .help(r#"Specify a list of files to execute, the output will be added to the answer. The output must be in the format `key0=value0\nkey1=value1\n...`. Repeat the option for each file."#)
                 .multiple(true)
                 .number_of_values(1)
                 .takes_value(true),
