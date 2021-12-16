@@ -9,19 +9,24 @@ use std::str::FromStr;
 use tracing::{debug, info, trace};
 
 fn main() -> Result<(), Report> {
+    const PORT_OPT: &str = "port";
+    const ADDR_OPT: &str = "addr";
+    const SIGNATURES_OPT: &str = "signatures";
+    const INVENTORY_OPT: &str = "inventory";
+    const JOURNALD_OPT: &str = "journald";
     let matches = App::new("ipdisserver")
         .version("0.1.0")
         .about("Answer with system info to ipdisscan broadcasts.")
         .arg(
-            Arg::with_name("port")
+            Arg::with_name(PORT_OPT)
                 .short("p")
                 .long("port")
                 .value_name("PORT")
-                .help("Listening port. Default: 1901")
+                .help("Listening port. Default: 1901.")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("addr")
+            Arg::with_name(ADDR_OPT)
                 .short("a")
                 .long("listening-addr")
                 .value_name("ADDR")
@@ -29,7 +34,7 @@ fn main() -> Result<(), Report> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("signatures")
+            Arg::with_name(SIGNATURES_OPT)
                 .short("s")
                 .long("signatures-file")
                 .value_name("SIGNATURES_FILE")
@@ -37,7 +42,7 @@ fn main() -> Result<(), Report> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("inventory")
+            Arg::with_name(INVENTORY_OPT)
                 .short("f")
                 .long("answer-file")
                 .value_name("ANSWER_FILE")
@@ -53,22 +58,26 @@ fn main() -> Result<(), Report> {
     trace!(?matches);
 
     let mut conf = ServerConfig::default();
-    if matches.is_present("port") {
-        conf.port = matches.value_of("port").unwrap().parse()?;
+    if matches.is_present(PORT_OPT) {
+        conf.port = matches
+            .value_of(PORT_OPT)
+            .unwrap()
+            .parse()
+            .wrap_err("Invalid port given")?;
     }
-    if matches.is_present("addr") {
-        let addr = matches.value_of("addr").unwrap().parse::<String>()?;
-        conf.listening_addr = Ipv4Addr::from_str(&addr)?;
+    if matches.is_present(ADDR_OPT) {
+        let addr = matches.value_of(ADDR_OPT).unwrap().parse::<String>()?;
+        conf.listening_addr = Ipv4Addr::from_str(&addr).wrap_err("Invalid IP v4 given")?;
     }
-    if matches.is_present("signatures") {
+    if matches.is_present(SIGNATURES_OPT) {
         conf.signatures = ServerConfig::parse_signatures_file(Path::new(
-            matches.value_of("signatures").unwrap(),
+            matches.value_of(SIGNATURES_OPT).unwrap(),
         ))?;
         info!("Accepted signatures: {:?}", conf.signatures);
     }
-    if matches.is_present("inventory") {
+    if matches.is_present(INVENTORY_OPT) {
         conf.inventory_files = matches
-            .values_of("inventory")
+            .values_of(INVENTORY_OPT)
             .unwrap()
             .into_iter()
             .map(Path::new)
