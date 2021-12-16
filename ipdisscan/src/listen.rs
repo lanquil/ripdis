@@ -1,5 +1,5 @@
 use crate::beacons::BeaconAnswer;
-use color_eyre::Report;
+use color_eyre::eyre::Report;
 use crossbeam::channel::Sender;
 use ipdisserver::answers::Answer;
 use std::net::UdpSocket;

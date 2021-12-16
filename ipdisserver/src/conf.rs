@@ -1,5 +1,5 @@
 use crate::signature::Signature;
-use color_eyre::Report;
+use color_eyre::eyre::Report;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Lines};
 use std::net::Ipv4Addr;

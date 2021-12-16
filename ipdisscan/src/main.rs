@@ -1,5 +1,5 @@
 use clap::{App, Arg};
-use color_eyre::Report;
+use color_eyre::eyre::Report;
 use ipdisscan::beacons;
 use ipdisscan::broadcast;
 use ipdisscan::broadcast::socket_setup;

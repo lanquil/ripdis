@@ -1,5 +1,5 @@
 use clap::{App, Arg};
-use color_eyre::Report;
+use color_eyre::{eyre::Report, eyre::WrapErr};
 use ipdisserver::conf::ServerConfig;
 use ipdisserver::server;
 use ipdisserver::setup::setup;

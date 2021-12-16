@@ -2,7 +2,7 @@ use crate::answers::get_answer;
 use crate::answers::Answer;
 use crate::conf::ServerConfig;
 use crate::signature::Signature;
-use color_eyre::Report;
+use color_eyre::eyre::Report;
 use std::net::SocketAddr;
 use std::net::UdpSocket;
 use std::path::Path;

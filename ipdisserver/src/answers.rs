@@ -1,7 +1,7 @@
 use crate::bytes::safe_format_bytes;
 use crate::inventory::{ExecuteInventory, InternalInventory, InventoryFile};
 use bytes::Bytes;
-use color_eyre::Report;
+use color_eyre::eyre::Report;
 use serde_json;
 use serde_json::value::Value;
 use std::fmt;

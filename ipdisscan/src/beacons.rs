@@ -1,4 +1,4 @@
-use color_eyre::Report;
+use color_eyre::eyre::Report;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use ipdisserver::answers::Answer;
 use std::collections::HashMap;
