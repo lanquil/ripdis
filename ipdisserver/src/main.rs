@@ -51,10 +51,19 @@ fn main() -> Result<(), Report> {
                 .number_of_values(1)
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name(JOURNALD_OPT)
+                .short("j")
+                .long("log-to-journald")
+                .required(false)
+                .takes_value(false)
+                .help("Send logs to systemd-journald instead of stderr.")
+        )
         .get_matches();
 
-    setup()?;
-    debug!("Tracing setup complete, starting IP discovery beacon.");
+    let do_log_to_journald = matches.is_present(JOURNALD_OPT);
+    setup(do_log_to_journald)?;
+    debug!("Tracing setup complete, starting IP discovery server.");
     trace!(?matches);
 
     let mut conf = ServerConfig::default();
