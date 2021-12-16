@@ -2,17 +2,18 @@ use crate::answers::get_answer;
 use crate::answers::Answer;
 use crate::conf::ServerConfig;
 use crate::signature::Signature;
-use color_eyre::Report;
+use color_eyre::eyre::Report;
 use std::net::SocketAddr;
 use std::net::UdpSocket;
 use std::path::Path;
 use std::thread;
 use std::time::Duration;
-use tracing::{debug, info, trace};
+use tracing::{debug, info, instrument, trace};
 
 const RECV_BUFFER_LENGHT: usize = 128; // update ipdisserver and ipdisscan CLI documentation if changed
 const REFRACTORY_PERIOD: f64 = 3.0; // needed to reduce useless communications and to allow every beacon to be polled in a crowded network
 
+#[instrument]
 pub fn run(conf: &ServerConfig) -> Result<(), Report> {
     {
         let socket = UdpSocket::bind(format!("{}:{}", conf.listening_addr, conf.port))?;
@@ -24,6 +25,7 @@ pub fn run(conf: &ServerConfig) -> Result<(), Report> {
     } // the socket is closed here
 }
 
+#[instrument]
 fn serve_single(
     socket: &UdpSocket,
     expected_signatures: &[Signature],

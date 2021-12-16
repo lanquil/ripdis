@@ -31,10 +31,10 @@ Answers to a same client are subject to a rate limiting of one every 3s.
 
 Run `ipdisserver --help` for the CLI documentation.
 
-### Environment variables:
+### Environment variables
 
-[`RUST_LOG`](https://docs.rs/env_logger/0.9.0/env_logger/#enabling-logging)
-changes logs verbosity.
+`RUST_LOG` changes logs verbosity.
 E.g.:
 `export RUST_LOG=debug`,
-`export RUST_LOG=trace`
+`export RUST_LOG=trace`.
+[Full documentation](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives).

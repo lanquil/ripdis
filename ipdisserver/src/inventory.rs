@@ -45,7 +45,7 @@ impl ExecuteInventory for InventoryFile {
     fn execute(&self) -> InventoryOutput {
         let mut command = InventoryCommand::new(&self.path);
         let raw_output = command.output();
-        let output = BeaconInfos::from_cmd_output(&raw_output).unwrap_or(BeaconInfos::new()); // empty on errors
+        let output = BeaconInfos::from_cmd_output(&raw_output).unwrap_or_default();
         InventoryOutput { raw_output, output }
     }
 }

@@ -1,18 +1,32 @@
-use color_eyre::Report;
-use std::io;
+use color_eyre::eyre::Report;
+use tracing::instrument;
+use tracing_error::ErrorLayer;
+use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
+#[instrument]
 pub fn setup() -> Result<(), Report> {
-    if std::env::var("RUST_BACKTRACE").is_err() {
-        std::env::set_var("RUST_BACKTRACE", "1")
-    }
+    install_stderr_tracing();
     color_eyre::install()?;
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "warn")
-    }
-    tracing_subscriber::fmt::fmt()
-        .with_writer(io::stderr)
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
     Ok(())
+}
+
+fn install_stderr_tracing() {
+    let filter_layer = get_envfilter("warn");
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_target(false)
+        .with_writer(std::io::stderr);
+    tracing_subscriber::registry()
+        .with(filter_layer)
+        .with(ErrorLayer::default())
+        .with(fmt_layer)
+        .init();
+}
+
+/// Logging levels configuration as per
+/// https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
+fn get_envfilter(default: &str) -> EnvFilter {
+    EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new(default))
+        .unwrap()
 }

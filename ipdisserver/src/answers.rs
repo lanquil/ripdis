@@ -1,12 +1,12 @@
 use crate::bytes::safe_format_bytes;
 use crate::inventory::{ExecuteInventory, InternalInventory, InventoryFile};
 use bytes::Bytes;
-use color_eyre::Report;
+use color_eyre::eyre::Report;
 use serde_json;
 use serde_json::value::Value;
 use std::fmt;
 use std::path::Path;
-use tracing::{debug, error, trace, warn};
+use tracing::{debug, error, instrument, trace, warn};
 
 const FALLBACK_INFO_KEY: &str = "info";
 
@@ -22,7 +22,7 @@ impl FromCmdOutput for BeaconInfos {
         let separator = "=";
         let mut res = BeaconInfos::new();
         for line in lines.lines() {
-            if let Some((key, value)) = line.clone().split_once(separator) {
+            if let Some((key, value)) = line.to_string().split_once(separator) {
                 match res.get_mut(&key.to_string()) {
                     None => {
                         res.insert(key.into(), Value::String(value.to_string()));
@@ -98,6 +98,7 @@ impl Answer {
     }
 }
 
+#[instrument(skip(inventory_files))]
 pub fn get_answer<P>(inventory_files: &[P]) -> Result<Answer, Report>
 where
     P: AsRef<Path>,
@@ -128,10 +129,12 @@ fn join_answers(first: &mut BeaconInfos, second: &mut BeaconInfos) -> BeaconInfo
     first.clone()
 }
 
+#[instrument(skip(inventory))]
 fn get_internal_inventory_answer(inventory: InternalInventory) -> BeaconInfos {
     inventory.execute().output
 }
 
+#[instrument(skip(inventory_file_paths))]
 fn get_inventory_files_answer<P>(inventory_file_paths: &[P]) -> BeaconInfos
 where
     P: AsRef<Path>,
