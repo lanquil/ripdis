@@ -6,10 +6,11 @@ use std::net::SocketAddr;
 use std::net::UdpSocket;
 use std::thread;
 use std::time::Duration;
-use tracing::{info, trace};
+use tracing::{info, instrument, trace};
 
 const SCANNER_ADDR: Ipv4Addr = Ipv4Addr::UNSPECIFIED; // "0.0.0.0"
 
+#[instrument]
 pub fn run(socket: &UdpSocket, conf: &ScannerConfig) -> Result<(), Report> {
     let frequency = 1.0 / conf.scan_period;
     {
@@ -33,6 +34,7 @@ pub fn socket_setup(scanner_port: u16) -> Result<UdpSocket, Report> {
     Ok(socket)
 }
 
+#[instrument]
 fn send_single(
     socket: &UdpSocket,
     broadcast_addr: Ipv4Addr,

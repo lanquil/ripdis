@@ -8,7 +8,7 @@ use std::thread;
 use std::time::Duration;
 use terminal_spinners::DOTS8 as SPINNER;
 use terminal_spinners::{SpinnerBuilder, SpinnerHandle};
-use tracing::{debug, trace};
+use tracing::{debug, instrument, trace};
 
 use crossterm::{cursor, terminal, ExecutableCommand};
 use std::io::stdout;
@@ -29,6 +29,7 @@ impl fmt::Display for BeaconAnswer {
 
 type BeaconAnswers = HashMap<IpAddr, BeaconAnswer>;
 
+#[instrument]
 pub fn run(channel_receiving_end: Receiver<BeaconAnswer>) -> Result<(), Report> {
     let mut beacons = BeaconAnswers::new();
     debug!(%PRINT_PERIOD, "Printing beacons.");
@@ -59,6 +60,7 @@ fn get_spinner() -> SpinnerHandle {
         .start()
 }
 
+#[instrument]
 fn beacons_update(
     mut beacons: BeaconAnswers,
     channel_receiving_end: Receiver<BeaconAnswer>,

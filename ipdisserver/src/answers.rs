@@ -6,7 +6,7 @@ use serde_json;
 use serde_json::value::Value;
 use std::fmt;
 use std::path::Path;
-use tracing::{debug, error, trace, warn};
+use tracing::{debug, error, instrument, trace, warn};
 
 const FALLBACK_INFO_KEY: &str = "info";
 
@@ -98,6 +98,7 @@ impl Answer {
     }
 }
 
+#[instrument(skip(inventory_files))]
 pub fn get_answer<P>(inventory_files: &[P]) -> Result<Answer, Report>
 where
     P: AsRef<Path>,
@@ -128,10 +129,12 @@ fn join_answers(first: &mut BeaconInfos, second: &mut BeaconInfos) -> BeaconInfo
     first.clone()
 }
 
+#[instrument(skip(inventory))]
 fn get_internal_inventory_answer(inventory: InternalInventory) -> BeaconInfos {
     inventory.execute().output
 }
 
+#[instrument(skip(inventory_file_paths))]
 fn get_inventory_files_answer<P>(inventory_file_paths: &[P]) -> BeaconInfos
 where
     P: AsRef<Path>,
