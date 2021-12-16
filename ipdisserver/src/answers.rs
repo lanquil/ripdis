@@ -22,7 +22,7 @@ impl FromCmdOutput for BeaconInfos {
         let separator = "=";
         let mut res = BeaconInfos::new();
         for line in lines.lines() {
-            if let Some((key, value)) = line.clone().split_once(separator) {
+            if let Some((key, value)) = line.to_string().split_once(separator) {
                 match res.get_mut(&key.to_string()) {
                     None => {
                         res.insert(key.into(), Value::String(value.to_string()));
