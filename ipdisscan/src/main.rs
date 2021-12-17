@@ -25,7 +25,7 @@ fn main() -> Result<(), Report> {
                 .short("p")
                 .long("scanner-source-port")
                 .value_name("PORT")
-                .help("UDP port used to receive ipdisserver answers. Default: 1902")
+                .help("UDP port used to receive ipdisserver answers. Default: 1902.")
                 .takes_value(true),
         )
         .arg(
@@ -33,7 +33,7 @@ fn main() -> Result<(), Report> {
                 .short("b")
                 .long("broadcast-target-port")
                 .value_name("TARGET-PORT")
-                .help("ipdisserver listening UDP port. Default: 1901")
+                .help("ipdisserver listening UDP port. Default: 1901.")
                 .takes_value(true),
         )
         .arg(
@@ -41,7 +41,7 @@ fn main() -> Result<(), Report> {
                 .short("a")
                 .long("broadcast-addr")
                 .value_name("ADDR")
-                .help("Broadcasting address. Default: 255.255.255.255")
+                .help("Broadcasting address. Default is the limited broadcast address: 255.255.255.255. You can also use any subnet-directed broadcast address, e.g. 192.168.1.255 (for the network 192.168.1.0/24).")
                 .takes_value(true),
         )
         .arg(
