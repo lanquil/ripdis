@@ -21,6 +21,7 @@ tracing = "0.1.29"
 tracing-subscriber = "0.2.25"
 tracing-error = "0.1.2"
 # tracing-error version 0.2.0: https://github.com/yaahc/color-eyre/issues/91
+tui = { version = "0.16", default-features = false, features = ['crossterm'] }
 
 [dev-dependencies]
 tracing-test = "0.1.0"
