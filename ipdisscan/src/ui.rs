@@ -89,7 +89,7 @@ impl App {
         };
         let info_text = match self.server_answers.get(index) {
             None => String::default(),
-            Some(a) => format!("{}:\n{}", a.addr.to_string(), a.payload),
+            Some(a) => a.payload.pretty_print(),
         };
         info_text
     }

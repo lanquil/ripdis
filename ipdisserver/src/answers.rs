@@ -78,6 +78,20 @@ impl From<String> for Answer {
 }
 
 impl Answer {
+    pub fn pretty_print(&self) -> String {
+        let json = match serde_json::from_slice(&self.0) {
+            Ok(p) => p,
+            Err(e) => {
+                warn!(?e, "Error deserializing Answer payload.");
+                let mut info = BeaconInfos::new();
+                info.insert(FALLBACK_INFO_KEY.into(), safe_format_bytes(&self.0).into());
+                info
+            }
+        };
+        serde_json::to_string_pretty(&json).expect("Error serializing JSON")
+        // TODO tests
+    }
+
     fn safe_format(&self) -> String {
         let res = match serde_json::from_slice(&self.0) {
             Ok(p) => p,
