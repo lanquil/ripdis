@@ -15,7 +15,7 @@ use tui::Terminal;
 
 type ConcreteTerminal = Terminal<CrosstermBackend<Stdout>>;
 
-const HELP: &str = "q: close, j/↓ : next, k/↑ : previous";
+const HELP: &str = "q: close, j/↓: next, k/↑: previous";
 
 pub fn run(channel_receiving_end: Receiver<Vec<BeaconAnswer>>) -> Result<(), Report> {
     let mut terminal = init_terminal()?;
@@ -144,7 +144,7 @@ fn draw_frame(terminal: &mut ConcreteTerminal, app: &mut App) -> Result<(), Repo
         // Surrounding block
         let block = Block::default()
             .borders(Borders::ALL)
-            .title(format!(" ipdisscan - {} ", HELP))
+            .title(format!(" ipdisscan - ({}) ", HELP))
             .title_alignment(Alignment::Center)
             .border_type(BorderType::Rounded);
         f.render_widget(block, f.size());
