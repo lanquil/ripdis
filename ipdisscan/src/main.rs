@@ -19,7 +19,7 @@ fn main() -> Result<(), Report> {
     const ADDR_OPT: &str = "addr";
     const SIGNATURE_OPT: &str = "signatures";
     let matches = App::new("ipdisscan")
-        .version("0.1.0")
+        .version("0.1.1")
         .about("Search for active instances of ipdisserver and get system informations.")
         .arg(
             Arg::with_name(PORT_OPT)
