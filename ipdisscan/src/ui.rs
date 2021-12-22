@@ -170,7 +170,8 @@ fn draw_frame(terminal: &mut ConcreteTerminal, app: &mut App) -> Result<(), Repo
                     .borders(Borders::ALL),
             )
             .style(Style::default().fg(Color::White).bg(Color::Black))
-            .highlight_style(Style::default().add_modifier(Modifier::ITALIC));
+            .highlight_style(Style::default().add_modifier(Modifier::ITALIC))
+            .highlight_symbol(">>");
         f.render_stateful_widget(list, main_chunks[0], &mut app.list_state);
 
         // Info block
