@@ -162,24 +162,6 @@ fn draw_frame(terminal: &mut ConcreteTerminal, app: &mut App) -> Result<(), Repo
             .constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
             .split(chunks[0]);
 
-        // // Help block
-        // let bottom_chunks = Layout::default()
-        //     .direction(Direction::Horizontal)
-        //     .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        //     .split(chunks[1]);
-        //
-        // // Bottom left block with all default borders
-        // let block = Block::default().title("With borders").borders(Borders::ALL);
-        // f.render_widget(block, bottom_chunks[0]);
-        //
-        // // Bottom right block with styled left and right border
-        // let block = Block::default()
-        //     .title("With styled borders and doubled borders")
-        //     .border_style(Style::default().fg(Color::Cyan))
-        //     .borders(Borders::LEFT | Borders::RIGHT)
-        //     .border_type(BorderType::Double);
-        // f.render_widget(block, bottom_chunks[1]);
-
         // IP list block
         let list = List::new(address_list)
             .block(
