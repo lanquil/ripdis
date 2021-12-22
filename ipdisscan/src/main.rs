@@ -6,6 +6,7 @@ use ipdisscan::broadcast::socket_setup;
 use ipdisscan::conf::ScannerConfig;
 use ipdisscan::listen;
 use ipdisscan::setup::setup;
+use ipdisscan::ui;
 use ipdisserver::signature::Signature;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
@@ -82,9 +83,11 @@ fn main() -> Result<(), Report> {
 
     let socket = socket_setup(conf.port)?;
     let socket_c = socket.try_clone()?;
-    let (channel_send_end, channel_receive_end) = beacons::init_channel();
-    thread::spawn(move || listen::run(&socket_c, channel_send_end));
+    let (input_channel_send_end, input_channel_receive_end) = beacons::init_input_channel();
+    let (output_channel_send_end, output_channel_receive_end) = beacons::init_output_channel();
+    thread::spawn(move || listen::run(&socket_c, input_channel_send_end));
     thread::spawn(move || broadcast::run(&socket, &conf));
-    beacons::run(channel_receive_end)?;
+    thread::spawn(move || beacons::run(input_channel_receive_end, output_channel_send_end));
+    ui::run(output_channel_receive_end)?;
     Ok(())
 }

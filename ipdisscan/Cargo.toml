@@ -1,6 +1,6 @@
 [package]
 name = "ipdisscan"
-version = "0.1.0"
+version = "0.1.1-alpha.1"
 edition = "2021"
 description = "Scan for ipdisserver instances in the network."
 license = "MPL-2.0"
@@ -14,13 +14,13 @@ ipdisserver = { path = "../ipdisserver" }
 serde_json = "1.0"
 thiserror = "1.0.30"
 crossterm = "0.22.1"
-terminal-spinners = "0.3"
 crossbeam = "0.8"
 color-eyre = "0.5.11"
 tracing = "0.1.29"
 tracing-subscriber = "0.2.25"
 tracing-error = "0.1.2"
 # tracing-error version 0.2.0: https://github.com/yaahc/color-eyre/issues/91
+tui = { version = "0.16", default-features = false, features = ['crossterm'] }
 
 [dev-dependencies]
 tracing-test = "0.1.0"

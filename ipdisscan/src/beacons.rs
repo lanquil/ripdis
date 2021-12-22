@@ -4,16 +4,7 @@ use ipdisserver::answers::Answer;
 use std::collections::HashMap;
 use std::fmt;
 use std::net::IpAddr;
-use std::thread;
-use std::time::Duration;
-use terminal_spinners::DOTS8 as SPINNER;
-use terminal_spinners::{SpinnerBuilder, SpinnerHandle};
-use tracing::{debug, instrument, trace};
-
-use crossterm::{cursor, terminal, ExecutableCommand};
-use std::io::stdout;
-
-const PRINT_PERIOD: f64 = 1.0;
+use tracing::{instrument, trace};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BeaconAnswer {
@@ -30,34 +21,24 @@ impl fmt::Display for BeaconAnswer {
 type BeaconAnswers = HashMap<IpAddr, BeaconAnswer>;
 
 #[instrument]
-pub fn run(channel_receiving_end: Receiver<BeaconAnswer>) -> Result<(), Report> {
-    let mut beacons = BeaconAnswers::new();
-    debug!(%PRINT_PERIOD, "Printing beacons.");
-
-    let mut stdout = stdout();
-    stdout.execute(terminal::Clear(terminal::ClearType::All))?;
-    stdout.execute(cursor::MoveTo(0, 0))?;
-    let mut spinner_handle = get_spinner();
+pub fn run(
+    channel_receiving_end: Receiver<BeaconAnswer>,
+    output_channel_send_end: Sender<Vec<BeaconAnswer>>,
+) -> Result<(), Report> {
+    let mut servers = BeaconAnswers::new();
+    trace!("Starting server answers update loop.");
     loop {
-        beacons = beacons_update(beacons, channel_receiving_end.clone())?;
-        thread::sleep(Duration::from_secs_f64(PRINT_PERIOD));
-        spinner_handle.stop_and_clear();
-        stdout.execute(cursor::MoveTo(0, 0))?;
-        print_beacons(beacons.values().cloned());
-        spinner_handle = get_spinner();
-        println!();
+        servers = beacons_update(servers, channel_receiving_end.clone())?;
+        output_channel_send_end.try_send(servers.values().map(|x| x.to_owned()).collect())?;
     }
 }
 
-pub fn init_channel() -> (Sender<BeaconAnswer>, Receiver<BeaconAnswer>) {
+pub fn init_input_channel() -> (Sender<BeaconAnswer>, Receiver<BeaconAnswer>) {
     unbounded()
 }
 
-fn get_spinner() -> SpinnerHandle {
-    SpinnerBuilder::new()
-        .spinner(&SPINNER)
-        .text(" Looking for devices")
-        .start()
+pub fn init_output_channel() -> (Sender<Vec<BeaconAnswer>>, Receiver<Vec<BeaconAnswer>>) {
+    unbounded()
 }
 
 #[instrument]
@@ -75,18 +56,6 @@ fn beacons_update(
     }
 }
 
-fn print_beacons<I>(beacons: I)
-where
-    I: Iterator<Item = BeaconAnswer>,
-{
-    println!("---");
-    for beacon in beacons {
-        println!("{}:", beacon.addr);
-        println!("  - {}", beacon.payload);
-    }
-    println!("...");
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -95,7 +64,7 @@ mod test {
     #[test]
     #[tracing_test::traced_test]
     fn test_beacons_update() {
-        let (sender, receiver) = init_channel();
+        let (sender, receiver) = init_input_channel();
         let answer1 = BeaconAnswer {
             addr: IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)),
             payload: Answer::default(),
@@ -131,7 +100,7 @@ mod test {
     #[test]
     #[tracing_test::traced_test]
     fn test_put_in_queue() {
-        let (sender, receiver) = init_channel();
+        let (sender, receiver) = init_input_channel();
         let an_answer = BeaconAnswer {
             addr: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             payload: Answer::default(),
@@ -143,7 +112,7 @@ mod test {
     #[test]
     #[tracing_test::traced_test]
     fn test_init_in_queue() {
-        let (_sender, receiver) = init_channel();
+        let (_sender, receiver) = init_input_channel();
         assert!(receiver.is_empty());
     }
 }

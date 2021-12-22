@@ -78,6 +78,19 @@ impl From<String> for Answer {
 }
 
 impl Answer {
+    pub fn pretty_format(&self) -> String {
+        let json = match serde_json::from_slice(&self.0) {
+            Ok(p) => p,
+            Err(e) => {
+                warn!(?e, "Error deserializing Answer payload.");
+                let mut info = BeaconInfos::new();
+                info.insert(FALLBACK_INFO_KEY.into(), safe_format_bytes(&self.0).into());
+                info
+            }
+        };
+        serde_json::to_string_pretty(&json).expect("Error serializing JSON")
+    }
+
     fn safe_format(&self) -> String {
         let res = match serde_json::from_slice(&self.0) {
             Ok(p) => p,
@@ -157,6 +170,14 @@ mod test {
     use std::collections::HashMap;
     use std::os::unix::fs::PermissionsExt;
     use std::path::PathBuf;
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn test_pretty_format() {
+        let json = r#"{"key string": [1, "two", 3.4, false, null], "2": "another string"}"#;
+        let expected = "{\n  \"2\": \"another string\",\n  \"key string\": [\n    1,\n    \"two\",\n    3.4,\n    false,\n    null\n  ]\n}";
+        assert_eq!(Answer::from(json.as_bytes()).pretty_format(), expected);
+    }
 
     #[test]
     #[tracing_test::traced_test]
