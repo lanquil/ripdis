@@ -78,7 +78,7 @@ impl From<String> for Answer {
 }
 
 impl Answer {
-    pub fn pretty_print(&self) -> String {
+    pub fn pretty_format(&self) -> String {
         let json = match serde_json::from_slice(&self.0) {
             Ok(p) => p,
             Err(e) => {
@@ -89,7 +89,6 @@ impl Answer {
             }
         };
         serde_json::to_string_pretty(&json).expect("Error serializing JSON")
-        // TODO tests
     }
 
     fn safe_format(&self) -> String {
@@ -171,6 +170,14 @@ mod test {
     use std::collections::HashMap;
     use std::os::unix::fs::PermissionsExt;
     use std::path::PathBuf;
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn test_pretty_format() {
+        let json = r#"{"key string": [1, "two", 3.4, false, null], "2": "another string"}"#;
+        let expected = "{\n  \"2\": \"another string\",\n  \"key string\": [\n    1,\n    \"two\",\n    3.4,\n    false,\n    null\n  ]\n}";
+        assert_eq!(Answer::from(json.as_bytes()).pretty_format(), expected);
+    }
 
     #[test]
     #[tracing_test::traced_test]
