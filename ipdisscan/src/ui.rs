@@ -48,7 +48,6 @@ struct App {
 impl App {
     fn get_cursor(&self) -> Option<usize> {
         self.list_state.selected()
-        // self.list_state.selected().unwrap_or_default()
     }
 
     fn next(&mut self) {
@@ -136,13 +135,11 @@ fn init_terminal() -> Result<ConcreteTerminal, Report> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
-    // terminal.clear()?;
     Ok(terminal)
 }
 
 fn cleanup_terminal(mut terminal: ConcreteTerminal) -> Result<(), Report> {
     disable_raw_mode()?;
-    // terminal.clear()?;
     terminal.show_cursor()?;
     crossterm::execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     Ok(())
