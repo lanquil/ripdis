@@ -24,19 +24,18 @@ pub fn run(channel_receiving_end: Receiver<Vec<BeaconAnswer>>) -> Result<(), Rep
     loop {
         app.update_answers(channel_receiving_end.clone())?;
         draw_frame(&mut terminal, &mut app)?;
-        if event::poll(Duration::from_secs(0))? {
-            if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => break,
-                    KeyCode::Char('j') | KeyCode::Down => app.next(),
-                    KeyCode::Char('k') | KeyCode::Up => app.prev(),
-                    _ => continue,
-                };
-            };
+        match app.act_keypress()? {
+            AppAction::Exit => break,
+            AppAction::Continue => (),
         }
     }
     cleanup_terminal(terminal)?;
     Ok(())
+}
+
+enum AppAction {
+    Exit,
+    Continue,
 }
 
 /// App holds the state of the application
@@ -113,6 +112,20 @@ impl App {
             };
         }
         Ok(())
+    }
+
+    fn act_keypress(&mut self) -> Result<AppAction, Report> {
+        if event::poll(Duration::from_secs(0))? {
+            if let Event::Key(key) = event::read()? {
+                match key.code {
+                    KeyCode::Char('q') => return Ok(AppAction::Exit),
+                    KeyCode::Char('j') | KeyCode::Down => self.next(),
+                    KeyCode::Char('k') | KeyCode::Up => self.prev(),
+                    _ => (),
+                };
+            };
+        }
+        Ok(AppAction::Continue)
     }
 }
 
