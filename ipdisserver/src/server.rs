@@ -3,26 +3,64 @@ use crate::answers::Answer;
 use crate::conf::ServerConfig;
 use crate::signature::Signature;
 use color_eyre::eyre::Report;
+use std::collections::HashSet;
 use std::net::SocketAddr;
 use std::net::UdpSocket;
 use std::path::Path;
-use std::thread;
-use std::time::Duration;
-use tracing::{debug, info, instrument, trace};
+use std::time::{Duration, SystemTime};
+use tracing::{info, instrument, trace};
 
 const RECV_BUFFER_LENGHT: usize = 128; // update ipdisserver and ipdisscan CLI documentation if changed
-const REFRACTORY_PERIOD: f64 = 3.0; // needed to reduce useless communications and to allow every beacon to be polled in a crowded network
+const RATE_LIMIT_TIMEOUT: Duration = Duration::from_secs(10); // do not accept more than a request every 10 s from each IP
 
 #[instrument]
 pub fn run(conf: &ServerConfig) -> Result<(), Report> {
-    {
-        let socket = UdpSocket::bind(format!("{}:{}", conf.listening_addr, conf.port))?;
-        info!(?socket, "Listening for scanner requests.");
-        loop {
-            serve_single(&socket, &conf.signatures, &conf.inventory_files)?;
-            thread::sleep(Duration::from_secs_f64(REFRACTORY_PERIOD));
+    let socket = UdpSocket::bind(format!("{}:{}", conf.listening_addr, conf.port))?;
+    info!(?socket, "Listening for scanner requests.");
+    let mut rate_limiter = RateLimiter::default();
+    loop {
+        rate_limiter.conditional_reset();
+        rate_limiter = serve_single(
+            &socket,
+            &conf.signatures,
+            &conf.inventory_files,
+            rate_limiter,
+        )?;
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RateLimiter {
+    served_ips: HashSet<SocketAddr>,
+    next_reset: SystemTime,
+}
+
+impl Default for RateLimiter {
+    fn default() -> Self {
+        Self {
+            served_ips: HashSet::default(),
+            next_reset: SystemTime::now(),
         }
-    } // the socket is closed here
+    }
+}
+
+impl RateLimiter {
+    /// Return true if the address is not in served_ips, add it.
+    fn check(&mut self, ip: &SocketAddr) -> bool {
+        self.served_ips.insert(*ip)
+    }
+
+    /// Reset served_ips if timeout has elapsed, set new timeout and return true. Return false
+    /// otherwise.
+    fn conditional_reset(&mut self) -> bool {
+        let now = SystemTime::now();
+        if now >= self.next_reset {
+            self.next_reset = now + RATE_LIMIT_TIMEOUT;
+            self.served_ips = HashSet::default();
+            return true;
+        }
+        false
+    }
 }
 
 #[instrument]
@@ -30,16 +68,20 @@ fn serve_single(
     socket: &UdpSocket,
     expected_signatures: &[Signature],
     inventory_files: &[&Path],
-) -> Result<(), Report> {
+    mut rate_limiter: RateLimiter,
+) -> Result<RateLimiter, Report> {
     let (addr, received) = receive(socket)?;
     if !is_signature_vaid(&received, expected_signatures) {
-        debug!(%received, %addr, "Bad signature received, not answering.");
-        return Ok(());
+        trace!(%received, %addr, "Bad signature received, not answering.");
+        return Ok(rate_limiter);
     };
+    if !rate_limiter.check(&addr) {
+        return Ok(rate_limiter);
+    }
     let answer = get_answer(inventory_files)?;
     respond(socket, &addr, &answer)?;
     info!(%answer, %addr, "Answered.");
-    Ok(())
+    Ok(rate_limiter)
 }
 
 fn is_signature_vaid(received: &Signature, expected: &[Signature]) -> bool {
@@ -92,6 +134,7 @@ mod test {
                 &beacon_socket,
                 &conf_clone.signatures,
                 &conf_clone.inventory_files,
+                RateLimiter::default(),
             )
             .unwrap();
         });
