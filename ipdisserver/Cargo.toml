@@ -1,6 +1,6 @@
 [package]
 name = "ipdisserver"
-version = "0.1.1-alpha.1"
+version = "0.1.1-beta.1"
 edition = "2021"
 description = "Answer to ipdisscan UDP packets with system informations."
 license = "MPL-2.0"
