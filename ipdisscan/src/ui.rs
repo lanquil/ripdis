@@ -24,19 +24,18 @@ pub fn run(channel_receiving_end: Receiver<Vec<BeaconAnswer>>) -> Result<(), Rep
     loop {
         app.update_answers(channel_receiving_end.clone())?;
         draw_frame(&mut terminal, &mut app)?;
-        if event::poll(Duration::from_secs(0))? {
-            if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => break,
-                    KeyCode::Char('j') | KeyCode::Down => app.next(),
-                    KeyCode::Char('k') | KeyCode::Up => app.prev(),
-                    _ => continue,
-                };
-            };
+        match app.act_keypress()? {
+            AppAction::Exit => break,
+            AppAction::Continue => (),
         }
     }
     cleanup_terminal(terminal)?;
     Ok(())
+}
+
+enum AppAction {
+    Exit,
+    Continue,
 }
 
 /// App holds the state of the application
@@ -49,7 +48,6 @@ struct App {
 impl App {
     fn get_cursor(&self) -> Option<usize> {
         self.list_state.selected()
-        // self.list_state.selected().unwrap_or_default()
     }
 
     fn next(&mut self) {
@@ -114,6 +112,20 @@ impl App {
         }
         Ok(())
     }
+
+    fn act_keypress(&mut self) -> Result<AppAction, Report> {
+        if event::poll(Duration::from_secs(0))? {
+            if let Event::Key(key) = event::read()? {
+                match key.code {
+                    KeyCode::Char('q') => return Ok(AppAction::Exit),
+                    KeyCode::Char('j') | KeyCode::Down => self.next(),
+                    KeyCode::Char('k') | KeyCode::Up => self.prev(),
+                    _ => (),
+                };
+            };
+        }
+        Ok(AppAction::Continue)
+    }
 }
 
 fn init_terminal() -> Result<ConcreteTerminal, Report> {
@@ -123,13 +135,11 @@ fn init_terminal() -> Result<ConcreteTerminal, Report> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
-    // terminal.clear()?;
     Ok(terminal)
 }
 
 fn cleanup_terminal(mut terminal: ConcreteTerminal) -> Result<(), Report> {
     disable_raw_mode()?;
-    // terminal.clear()?;
     terminal.show_cursor()?;
     crossterm::execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     Ok(())
