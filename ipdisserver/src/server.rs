@@ -17,7 +17,8 @@ const RATE_LIMIT_TIMEOUT: Duration = Duration::from_secs(10); // do not accept m
 pub fn run(conf: &ServerConfig) -> Result<(), Report> {
     let socket = UdpSocket::bind(format!("{}:{}", conf.listening_addr, conf.port))?;
     info!(?socket, "Listening for scanner requests.");
-    let mut rate_limiter = RateLimiter::default();
+    let clock = Clock::default();
+    let mut rate_limiter = RateLimiter::new(&clock);
     loop {
         rate_limiter.conditional_reset();
         rate_limiter = serve_single(
@@ -30,46 +31,77 @@ pub fn run(conf: &ServerConfig) -> Result<(), Report> {
 }
 
 #[derive(Debug, Clone)]
-struct RateLimiter {
+struct RateLimiter<'a> {
     served_ips: HashSet<SocketAddr>,
+    clock: &'a dyn WrappedSystemTime,
     next_reset: SystemTime,
 }
 
-impl Default for RateLimiter {
-    fn default() -> Self {
+impl<'a> RateLimiter<'a> {
+    fn new(clock: &'a dyn WrappedSystemTime) -> Self {
         Self {
             served_ips: HashSet::default(),
-            next_reset: SystemTime::now(),
+            clock,
+            next_reset: clock.now(),
         }
     }
 }
 
-impl RateLimiter {
+impl RateLimiter<'_> {
     /// Return true if the address is not in served_ips, add it.
     fn check(&mut self, ip: &SocketAddr) -> bool {
-        self.served_ips.insert(*ip)
+        self.conditional_reset();
+        let not_already_served = self.served_ips.insert(*ip);
+        trace!(%ip, %not_already_served, "IP checked.");
+        not_already_served
     }
 
     /// Reset served_ips if timeout has elapsed, set new timeout and return true. Return false
     /// otherwise.
     fn conditional_reset(&mut self) -> bool {
-        let now = SystemTime::now();
+        let now = self.clock.now();
         if now >= self.next_reset {
             self.next_reset = now + RATE_LIMIT_TIMEOUT;
             self.served_ips = HashSet::default();
+            trace!(?self.next_reset, "Cleared served IPs.");
             return true;
         }
         false
     }
 }
 
+trait WrappedSystemTime: std::fmt::Debug {
+    // NB: supertrait
+    fn now(&self) -> SystemTime;
+}
+
+#[derive(Debug, Default)]
+struct Clock;
+
+impl WrappedSystemTime for Clock {
+    fn now(&self) -> SystemTime {
+        SystemTime::now()
+    }
+}
+
+#[derive(Debug)]
+struct DummyClock {
+    time: SystemTime,
+}
+
+impl WrappedSystemTime for DummyClock {
+    fn now(&self) -> SystemTime {
+        self.time
+    }
+}
+
 #[instrument]
-fn serve_single(
+fn serve_single<'a>(
     socket: &UdpSocket,
     expected_signatures: &[Signature],
     inventory_files: &[&Path],
-    mut rate_limiter: RateLimiter,
-) -> Result<RateLimiter, Report> {
+    mut rate_limiter: RateLimiter<'a>,
+) -> Result<RateLimiter<'a>, Report> {
     let (addr, received) = receive(socket)?;
     if !is_signature_vaid(&received, expected_signatures) {
         trace!(%received, %addr, "Bad signature received, not answering.");
@@ -130,11 +162,12 @@ mod test {
         let server_port = beacon_socket.local_addr().unwrap().port();
         let conf_clone = conf.clone();
         let server_handle = thread::spawn(move || {
+            let clock = Clock::default();
             serve_single(
                 &beacon_socket,
                 &conf_clone.signatures,
                 &conf_clone.inventory_files,
-                RateLimiter::default(),
+                RateLimiter::new(&clock),
             )
             .unwrap();
         });
@@ -150,5 +183,21 @@ mod test {
         println!("[{}] -> {}", response.0, response.1);
         server_handle.join().unwrap();
         scanner_handle.join().unwrap();
+    }
+
+    #[test]
+    #[tracing_test::traced_test]
+    fn test_rate_limiter() {
+        let time = SystemTime::now();
+        let clock = DummyClock { time };
+        let mut rate_limiter = RateLimiter::new(&clock);
+        let ip = SocketAddr::from(([10, 11, 12, 13], 1234));
+        assert!(rate_limiter.check(&ip));
+        assert!(!rate_limiter.check(&ip));
+        let time = SystemTime::now() + RATE_LIMIT_TIMEOUT + Duration::from_millis(1);
+        let clock = DummyClock { time };
+        rate_limiter.clock = &clock;
+        assert!(rate_limiter.check(&ip));
+        assert!(!rate_limiter.check(&ip));
     }
 }
