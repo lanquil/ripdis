@@ -15,7 +15,7 @@ fn main() -> Result<(), Report> {
     const INVENTORY_OPT: &str = "inventory";
     const JOURNALD_OPT: &str = "journald";
     let matches = App::new("ipdisserver")
-        .version("0.1.0")
+        .version("0.1.1")
         .about("Answer with system info to ipdisscan broadcasts.")
         .arg(
             Arg::with_name(PORT_OPT)
